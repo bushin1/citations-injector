@@ -1,11 +1,18 @@
+const { addLog } = require('./state');
+
 function ts() {
   return new Date().toLocaleTimeString('fr-FR', { hour12: false });
 }
 
+function emit(level, prefix, msg) {
+  console.log(`[${ts()}] ${prefix} ${msg}`);
+  addLog(level, msg);
+}
+
 module.exports = {
-  info:  (msg) => console.log(`[${ts()}]  ${msg}`),
-  ok:    (msg) => console.log(`[${ts()}] [+] ${msg}`),
-  warn:  (msg) => console.log(`[${ts()}] [!] ${msg}`),
-  arrow: (msg) => console.log(`[${ts()}]  > ${msg}`),
-  gone:  (msg) => console.log(`[${ts()}] [-] ${msg}`),
+  info:  (msg) => emit('info', ' ', msg),
+  ok:    (msg) => emit('ok', '[+]', msg),
+  warn:  (msg) => emit('warn', '[!]', msg),
+  arrow: (msg) => emit('inject', ' > ', msg),
+  gone:  (msg) => emit('gone', '[-]', msg),
 };

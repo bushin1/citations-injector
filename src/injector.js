@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer-core');
 const log = require('./log');
+const { setBrowser, removeBrowser, addPage } = require('./state');
 
 const connectedBrowsers = new Map();
 const injectedPages = new Set();
@@ -23,6 +24,7 @@ async function injectPluginsIntoPage(page, plugins, port) {
     try {
       await page.evaluate(plugin.compiledScript);
       injectedPages.add(pageKey);
+      addPage(port, plugin.name, url);
       log.arrow(`${plugin.name} → ${url.slice(0, 70)}`);
     } catch {}
   }
@@ -38,6 +40,7 @@ async function connectAndInject(port, plugins) {
     });
 
     connectedBrowsers.set(port, browser);
+    setBrowser(port, { status: 'connected' });
     log.ok(`Connecté au navigateur sur le port ${port}`);
 
     const pages = await browser.pages();
@@ -59,9 +62,7 @@ async function connectAndInject(port, plugins) {
     browser.on('disconnected', () => {
       log.gone(`Navigateur déconnecté (port ${port})`);
       connectedBrowsers.delete(port);
-      for (const key of injectedPages) {
-        if (key.startsWith(port + ':')) injectedPages.delete(key);
-      }
+      removeBrowser(port);
     });
   } catch (err) {
     log.warn(`Connexion échouée port ${port}: ${err.message}`);

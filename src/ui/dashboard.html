@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Citations Injector</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --border: #2a2d3a;
+    --text: #e2e4ea;
+    --muted: #6b7080;
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --green: #22c55e;
+    --red: #ef4444;
+    --orange: #f59e0b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+  .header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 24px 32px; border-bottom: 1px solid var(--border);
+  }
+  .logo { width: 48px; height: 48px; }
+  .header h1 { font-size: 20px; font-weight: 600; }
+  .header .version { font-size: 12px; color: var(--muted); font-family: monospace; }
+  .header .uptime { margin-left: auto; font-size: 13px; color: var(--muted); font-family: monospace; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 24px 32px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--muted); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title .dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .dot-green { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .dot-orange { background: var(--orange); }
+  .dot-red { background: var(--red); }
+
+  .stat-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { font-size: 14px; color: var(--muted); }
+  .stat-value { font-size: 14px; font-weight: 500; font-family: monospace; }
+
+  .browser-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border-radius: 8px;
+    background: rgba(99, 102, 241, 0.06); margin-bottom: 8px;
+  }
+  .browser-icon { font-size: 20px; }
+  .browser-port { font-family: monospace; font-size: 13px; color: var(--accent-light); }
+  .browser-time { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+  .page-item {
+    padding: 8px 12px; border-radius: 6px;
+    background: rgba(34, 197, 94, 0.06); margin-bottom: 6px;
+    font-size: 13px; display: flex; gap: 8px; align-items: center;
+  }
+  .page-url {
+    color: var(--text); font-family: monospace; font-size: 12px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+  }
+  .page-plugin { font-size: 11px; color: var(--accent-light); white-space: nowrap; }
+
+  .empty { color: var(--muted); font-size: 13px; font-style: italic; padding: 12px 0; }
+
+  .logs-card { grid-column: 1 / -1; }
+  .log-list { max-height: 260px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+  .log-entry { padding: 4px 0; border-bottom: 1px solid rgba(42,45,58,0.5); display: flex; gap: 10px; }
+  .log-ts { color: var(--muted); white-space: nowrap; }
+  .log-msg { color: var(--text); word-break: break-all; }
+  .log-entry[data-level="ok"] .log-msg { color: var(--green); }
+  .log-entry[data-level="warn"] .log-msg { color: var(--orange); }
+  .log-entry[data-level="inject"] .log-msg { color: var(--accent-light); }
+  .log-entry[data-level="gone"] .log-msg { color: var(--red); }
+
+  .plugins-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .plugin-tag {
+    padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    background: rgba(99, 102, 241, 0.15); color: var(--accent-light);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <svg class="logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="48" height="48" rx="12" fill="#6366f1"/>
+    <path d="M14 18 C14 14, 18 12, 24 12 C30 12, 34 14, 34 18 L34 20 L14 20 Z" fill="white" opacity="0.9"/>
+    <rect x="14" y="22" width="20" height="3" rx="1.5" fill="white" opacity="0.7"/>
+    <rect x="14" y="27" width="14" height="3" rx="1.5" fill="white" opacity="0.5"/>
+    <rect x="14" y="32" width="18" height="3" rx="1.5" fill="white" opacity="0.3"/>
+    <circle cx="36" cy="36" r="8" fill="#22c55e"/>
+    <path d="M32.5 36 L35 38.5 L39.5 33.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div>
+    <h1>Citations Injector</h1>
+    <span class="version" id="version"></span>
+  </div>
+  <div class="uptime" id="uptime"></div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-title">
+      <span class="dot" id="status-dot"></span>
+      Statut
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Navigateurs connectés</span>
+      <span class="stat-value" id="browser-count">0</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Pages injectées</span>
+      <span class="stat-value" id="page-count">0</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Plugins actifs</span>
+      <span class="stat-value" id="plugin-count">0</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Plugins</div>
+    <div class="plugins-list" id="plugins"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Navigateurs</div>
+    <div id="browsers"><p class="empty">En attente de profils GoLogin…</p></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Pages injectées</div>
+    <div id="pages"><p class="empty">Aucune page pour le moment</p></div>
+  </div>
+
+  <div class="card logs-card">
+    <div class="card-title">Logs</div>
+    <div class="log-list" id="logs"></div>
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.getElementById(s);
+
+function fmtUptime(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return [h, m, sec].map(v => String(v).padStart(2, '0')).join(':');
+}
+
+function fmtTime(ts) {
+  return new Date(ts).toLocaleTimeString('fr-FR', { hour12: false });
+}
+
+function render(data) {
+  $('version').textContent = 'v' + (data.version || '?');
+  $('uptime').textContent = '⏱ ' + fmtUptime(data.uptime);
+
+  const dot = $('status-dot');
+  if (data.browsers.length > 0) {
+    dot.className = 'dot dot-green';
+  } else {
+    dot.className = 'dot dot-orange';
+  }
+
+  $('browser-count').textContent = data.browsers.length;
+  $('page-count').textContent = data.pages.length;
+  $('plugin-count').textContent = data.plugins.length;
+
+  $('plugins').innerHTML = data.plugins.length
+    ? data.plugins.map(p => '<span class="plugin-tag">' + p + '</span>').join('')
+    : '<p class="empty">Aucun plugin</p>';
+
+  $('browsers').innerHTML = data.browsers.length
+    ? data.browsers.map(b =>
+        '<div class="browser-item">' +
+          '<span class="browser-icon">🌐</span>' +
+          '<span class="browser-port">:' + b.port + '</span>' +
+          '<span class="browser-time">depuis ' + fmtTime(b.connectedAt) + '</span>' +
+        '</div>'
+      ).join('')
+    : '<p class="empty">En attente de profils GoLogin…</p>';
+
+  $('pages').innerHTML = data.pages.length
+    ? data.pages.map(p =>
+        '<div class="page-item">' +
+          '<span class="page-plugin">' + p.plugin + '</span>' +
+          '<span class="page-url">' + p.url + '</span>' +
+        '</div>'
+      ).join('')
+    : '<p class="empty">Aucune page pour le moment</p>';
+}
+
+function renderLog(entry) {
+  const el = document.createElement('div');
+  el.className = 'log-entry';
+  el.dataset.level = entry.level;
+  el.innerHTML = '<span class="log-ts">' + fmtTime(entry.ts) + '</span><span class="log-msg">' +
+    entry.msg.replace(/</g, '&lt;') + '</span>';
+  $('logs').appendChild(el);
+  $('logs').scrollTop = $('logs').scrollHeight;
+}
+
+// SSE
+const evtSource = new EventSource('/events');
+
+evtSource.addEventListener('state', (e) => {
+  render(JSON.parse(e.data));
+});
+
+evtSource.addEventListener('log', (e) => {
+  renderLog(JSON.parse(e.data));
+});
+
+evtSource.onerror = () => {
+  $('status-dot').className = 'dot dot-red';
+};
+
+// Keep uptime ticking
+setInterval(() => {
+  const el = $('uptime');
+  if (!el._start) return;
+  el.textContent = '⏱ ' + fmtUptime(Date.now() - el._start);
+}, 1000);
+
+evtSource.addEventListener('state', (e) => {
+  const data = JSON.parse(e.data);
+  $('uptime')._start = Date.now() - data.uptime;
+});
+</script>
+
+</body>
+</html>
