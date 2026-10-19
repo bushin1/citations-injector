@@ -1,0 +1,27 @@
+{
+  "name": "citations-injector",
+  "version": "1.1.0",
+  "description": "Logiciel d'injection CDP — injecte automatiquement des panneaux dans les profils GoLogin",
+  "main": "src/main.js",
+  "bin": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "dev": "node --watch src/main.js",
+    "build:win": "pkg . --targets node18-win-x64 --output dist/citations-injector-win.exe",
+    "build:mac": "pkg . --targets node18-macos-arm64 --output dist/citations-injector-mac",
+    "build:all": "npm run build:win && npm run build:mac"
+  },
+  "pkg": {
+    "assets": [
+      "src/plugins/**/*.js"
+    ],
+    "outputPath": "dist"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.0",
+    "puppeteer-core": "^23.0.0"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  }
+}
