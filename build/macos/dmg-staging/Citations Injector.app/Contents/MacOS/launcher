@@ -1,0 +1,11 @@
+#!/bin/bash
+DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_DIR="$(cd "$DIR/../../.." && pwd)"
+ENV_FILE="$APP_DIR/../.env"
+
+# Charger le .env s'il existe (pour overrides), sinon le token par défaut suffit
+if [ -f "$ENV_FILE" ]; then
+  export $(grep -v '^#' "$ENV_FILE" | xargs)
+fi
+
+exec "$DIR/citations-injector"

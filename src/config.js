@@ -10,7 +10,7 @@ function load() {
 
   return {
     dashboardBase: process.env.DASHBOARD_BASE || 'https://dashboard.allo-chantiers.com',
-    extToken:      process.env.EXT_TOKEN || '',
+    extToken:      process.env.EXT_TOKEN || '1a1d267d9077770b4e04a6651cf970c3154fb4ad69460b1d',
     pollInterval:  parseInt(process.env.POLL_INTERVAL || '3000', 10),
     goLoginApiPort: parseInt(process.env.GOLOGIN_API_PORT || '36912', 10),
     debugPorts:    process.env.DEBUG_PORTS

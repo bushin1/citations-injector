@@ -1,6 +1,6 @@
 {
   "name": "citations-injector",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Logiciel d'injection CDP — injecte automatiquement des panneaux dans les profils GoLogin",
   "main": "src/main.js",
   "bin": "src/main.js",
