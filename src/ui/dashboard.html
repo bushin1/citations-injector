@@ -93,6 +93,24 @@
     padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
     background: rgba(99, 102, 241, 0.15); color: var(--accent-light);
   }
+
+  .update-banner {
+    display: none; align-items: center; gap: 12px;
+    padding: 14px 32px;
+    background: linear-gradient(90deg, rgba(99,102,241,0.15), rgba(34,197,94,0.1));
+    border-bottom: 1px solid var(--accent);
+  }
+  .update-banner.visible { display: flex; }
+  .update-banner .update-icon { font-size: 18px; }
+  .update-banner .update-text { flex: 1; font-size: 14px; }
+  .update-banner .update-text strong { color: var(--accent-light); }
+  .update-btn {
+    padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer;
+    font-size: 13px; font-weight: 600;
+    background: var(--accent); color: white; transition: background 0.2s;
+  }
+  .update-btn:hover { background: var(--accent-light); }
+  .update-btn:disabled { opacity: 0.6; cursor: wait; }
 </style>
 </head>
 <body>
@@ -112,6 +130,12 @@
     <span class="version" id="version"></span>
   </div>
   <div class="uptime" id="uptime"></div>
+</div>
+
+<div class="update-banner" id="update-banner">
+  <span class="update-icon">🚀</span>
+  <span class="update-text" id="update-text"></span>
+  <button class="update-btn" id="update-btn" onclick="doUpdate()">Mettre à jour</button>
 </div>
 
 <div class="grid">
@@ -170,9 +194,39 @@ function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString('fr-FR', { hour12: false });
 }
 
+function renderUpdate(update) {
+  const banner = $('update-banner');
+  if (!update || !update.latest) {
+    banner.classList.remove('visible');
+    return;
+  }
+  banner.classList.add('visible');
+  $('update-text').innerHTML = 'Nouvelle version disponible : <strong>v' + update.latest + '</strong> (actuelle : v' + update.current + ')';
+}
+
+async function doUpdate() {
+  const btn = $('update-btn');
+  btn.disabled = true;
+  btn.textContent = 'Téléchargement…';
+  try {
+    const res = await fetch('/api/update', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      btn.textContent = 'Redémarrage…';
+    } else {
+      btn.textContent = 'Échec — réessayer';
+      btn.disabled = false;
+    }
+  } catch {
+    btn.textContent = 'Échec — réessayer';
+    btn.disabled = false;
+  }
+}
+
 function render(data) {
   $('version').textContent = 'v' + (data.version || '?');
   $('uptime').textContent = '⏱ ' + fmtUptime(data.uptime);
+  renderUpdate(data.update);
 
   const dot = $('status-dot');
   if (data.browsers.length > 0) {

@@ -6,6 +6,7 @@ const { connectAndInject } = require('./injector');
 const { loadAll } = require('./plugins');
 const { start, openBrowser } = require('./server');
 const { state, setPlugins } = require('./state');
+const { checkForUpdate } = require('./updater');
 const log = require('./log');
 
 const VERSION = require('../package.json').version;
@@ -27,6 +28,8 @@ async function run() {
 
   const uiPort = start();
   openBrowser(uiPort);
+
+  checkForUpdate();
 
   log.info(`Dashboard: ${config.dashboardBase}`);
   log.info(`Token:     ${config.extToken.slice(0, 8)}…`);

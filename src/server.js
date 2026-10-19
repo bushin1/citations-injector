@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { bus, snapshot } = require('./state');
+const { getUpdateInfo, applyUpdate } = require('./updater');
 
 const VERSION = require('../package.json').version;
 const DASHBOARD_HTML = fs.readFileSync(path.join(__dirname, 'ui', 'dashboard.html'), 'utf-8');
@@ -10,7 +11,7 @@ const PORT = parseInt(process.env.UI_PORT || '3847', 10);
 const sseClients = new Set();
 
 function broadcastState() {
-  const data = { ...snapshot(), version: VERSION };
+  const data = { ...snapshot(), version: VERSION, update: getUpdateInfo() };
   const msg = `event: state\ndata: ${JSON.stringify(data)}\n\n`;
   for (const res of sseClients) {
     try { res.write(msg); } catch { sseClients.delete(res); }
@@ -28,7 +29,7 @@ function start() {
   bus.on('update', broadcastState);
   bus.on('log', broadcastLog);
 
-  const server = http.createServer((req, res) => {
+  const server = http.createServer(async (req, res) => {
     if (req.url === '/events') {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -39,8 +40,15 @@ function start() {
       sseClients.add(res);
       req.on('close', () => sseClients.delete(res));
 
-      const data = { ...snapshot(), version: VERSION };
+      const data = { ...snapshot(), version: VERSION, update: getUpdateInfo() };
       res.write(`event: state\ndata: ${JSON.stringify(data)}\n\n`);
+      return;
+    }
+
+    if (req.url === '/api/update' && req.method === 'POST') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      const ok = await applyUpdate();
+      res.end(JSON.stringify({ ok }));
       return;
     }
 
