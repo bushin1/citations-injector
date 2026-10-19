@@ -1,13 +1,14 @@
-// Floating panel injected via CDP — replaces the extension popup.
-// Self-contained: fetches NAP from dashboard, runs matcher+filler inline.
+// Floating panel injected via CDP — auto-fill NAP on citation sites.
+// Business selection persists across all pages via the local injector server.
 
 (function() {
   if (document.getElementById('citations-autofill-panel')) return;
 
   var DASHBOARD_BASE = '__DASHBOARD_BASE__';
   var EXT_TOKEN = '__EXT_TOKEN__';
+  var LOCAL_SERVER = 'http://localhost:3847';
 
-  // ═══ MATCHER (inline from matcher.js) ═══
+  // ═══ MATCHER ═══
 
   var AUTOCOMPLETE_MAP = {
     'organization': 'name', 'street-address': 'street', 'address-line1': 'street',
@@ -26,6 +27,8 @@
     phone: ['phone','telephone','phone number','tel','mobile','fax','téléphone','tél','numéro','contact number'],
     email: ['email','e-mail','email address','courriel','mail'],
     website: ['website','web site','url','site web','site internet','homepage','website url'],
+    description: ['description','about','about us','bio','summary','details','business description'],
+    categories: ['category','categories','type','business type','industry','catégorie'],
   };
 
   var TYPE_BONUS = { email: 'email', tel: 'phone', url: 'website' };
@@ -91,7 +94,7 @@
     return { filled: filled, unmatched: unmatched };
   }
 
-  // ═══ FILLER (inline from filler.js) ═══
+  // ═══ FILLER ═══
 
   function _collectFields() {
     var inputs = document.querySelectorAll('input, select, textarea');
@@ -101,6 +104,7 @@
       if (el.offsetParent === null || el.disabled || el.readOnly) continue;
       if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button' ||
           el.type === 'checkbox' || el.type === 'radio' || el.type === 'file') continue;
+      if (el.closest('#citations-autofill-panel')) continue;
       var label = '';
       if (el.id) { var lbl = document.querySelector('label[for="' + CSS.escape(el.id) + '"]'); if (lbl) label = lbl.textContent.trim(); }
       if (!label && el.closest('label')) label = el.closest('label').textContent.trim();
@@ -137,7 +141,7 @@
   async function _typeHuman(el, value) {
     el.focus();
     el.dispatchEvent(new Event('focus', { bubbles: true }));
-    await _sleep(_gaussianRandom(100, 30));
+    await _sleep(_gaussianRandom(80, 20));
     var nativeSetter = _getNativeSetter(el);
     if (nativeSetter) nativeSetter.call(el, ''); else el.value = '';
     el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -148,7 +152,7 @@
       if (nativeSetter) nativeSetter.call(el, value.slice(0, i + 1)); else el.value = value.slice(0, i + 1);
       el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: ch }));
       el.dispatchEvent(new KeyboardEvent('keyup', { key: ch, bubbles: true }));
-      await _sleep(_gaussianRandom(100, 30));
+      await _sleep(_gaussianRandom(65, 20));
     }
     el.dispatchEvent(new Event('change', { bubbles: true }));
     el.dispatchEvent(new Event('blur', { bubbles: true }));
@@ -163,11 +167,11 @@
       if (text.indexOf(norm) !== -1 && text.length < bestLen) { bestOption = opt; bestLen = text.length; }
     }
     if (bestOption) {
-      el.focus(); await _sleep(_gaussianRandom(200, 50));
+      el.focus(); await _sleep(_gaussianRandom(150, 40));
       el.value = bestOption.value;
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
-      await _sleep(_gaussianRandom(100, 30)); el.blur(); return true;
+      await _sleep(_gaussianRandom(80, 20)); el.blur(); return true;
     }
     return false;
   }
@@ -177,6 +181,11 @@
     el.style.outlineOffset = '1px';
     el.setAttribute('data-autofill', 'true');
   }
+
+  // ═══ STATE ═══
+
+  var currentNap = null;
+  var filling = false;
 
   // ═══ PANEL UI ═══
 
@@ -193,12 +202,12 @@
     '    <div id="caf-results" style="margin-top:6px;max-height:150px;overflow-y:auto"></div>',
     '  </div>',
     '  <div id="caf-fill-section" style="display:none">',
-    '    <div style="font-size:12px;color:#94a3b8">Selectionne :</div>',
-    '    <div id="caf-selected-name" style="font-size:13px;font-weight:600;color:#e2e8f0;margin:4px 0"></div>',
-    '    <div id="caf-selected-city" style="font-size:11px;color:#64748b;margin-bottom:8px"></div>',
-    '    <button id="caf-fill-btn" style="width:100%;padding:6px;background:#22c55e;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer">Remplir la page</button>',
-    '    <button id="caf-change-btn" style="width:100%;padding:4px;background:transparent;color:#94a3b8;border:1px solid #334155;border-radius:4px;font-size:11px;cursor:pointer;margin-top:4px">Changer</button>',
-    '    <div id="caf-status" style="font-size:11px;margin-top:6px;color:#94a3b8"></div>',
+    '    <div id="caf-selected-name" style="font-size:14px;font-weight:700;color:#e2e8f0;margin-bottom:2px"></div>',
+    '    <div id="caf-selected-city" style="font-size:11px;color:#64748b;margin-bottom:10px"></div>',
+    '    <button id="caf-fill-btn" style="width:100%;padding:10px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.5px">REMPLIR</button>',
+    '    <div style="text-align:center;margin-top:4px;font-size:10px;color:#64748b">ou appuie sur <kbd style="background:#334155;padding:1px 5px;border-radius:3px;font-size:10px;color:#e2e8f0">Ctrl+Shift+F</kbd></div>',
+    '    <div id="caf-status" style="font-size:12px;margin-top:8px;color:#94a3b8;text-align:center;font-weight:500"></div>',
+    '    <button id="caf-change-btn" style="width:100%;padding:4px;background:transparent;color:#94a3b8;border:1px solid #334155;border-radius:4px;font-size:11px;cursor:pointer;margin-top:6px">Changer de business</button>',
     '  </div>',
     '</div>',
   ].join('\n');
@@ -221,21 +230,55 @@
 
   // Toggle minimize
   var body = document.getElementById('caf-body');
-  var toggle = document.getElementById('caf-toggle');
-  toggle.addEventListener('click', function() {
+  var toggleBtn = document.getElementById('caf-toggle');
+  toggleBtn.addEventListener('click', function() {
     var hidden = body.style.display === 'none';
     body.style.display = hidden ? 'block' : 'none';
-    toggle.textContent = hidden ? '_' : '+';
+    toggleBtn.textContent = hidden ? '_' : '+';
   });
 
-  // State
-  var currentNap = null;
-
-  // Search
+  // Refs
   var searchInput = document.getElementById('caf-search');
   var resultsDiv = document.getElementById('caf-results');
   var searchSection = document.getElementById('caf-search-section');
   var fillSection = document.getElementById('caf-fill-section');
+  var fillBtn = document.getElementById('caf-fill-btn');
+  var statusDiv = document.getElementById('caf-status');
+
+  // ═══ LOAD SAVED SELECTION ═══
+
+  async function loadSavedSelection() {
+    try {
+      var res = await fetch(LOCAL_SERVER + '/api/selection');
+      if (!res.ok) return;
+      var data = await res.json();
+      if (data && data.nap) {
+        currentNap = data.nap;
+        document.getElementById('caf-selected-name').textContent = data.name || '';
+        document.getElementById('caf-selected-city').textContent = data.city || '';
+        searchSection.style.display = 'none';
+        fillSection.style.display = 'block';
+        countFormFields();
+      }
+    } catch {}
+  }
+
+  loadSavedSelection();
+
+  // ═══ COUNT FIELDS ═══
+
+  function countFormFields() {
+    var fields = _collectFields();
+    if (fields.length > 0) {
+      statusDiv.style.color = '#22c55e';
+      statusDiv.textContent = fields.length + ' champs detectes';
+    } else {
+      statusDiv.style.color = '#64748b';
+      statusDiv.textContent = 'Pas de formulaire sur cette page';
+    }
+  }
+
+  // ═══ SEARCH ═══
 
   var debounceTimer = null;
   searchInput.addEventListener('input', function() {
@@ -280,22 +323,33 @@
       });
       if (!res.ok) throw new Error(res.status);
       currentNap = await res.json();
+
+      // Save selection to local server so all pages share it
+      await fetch(LOCAL_SERVER + '/api/selection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: r.name, city: r.city || '', gmbId: r.gmbId, nap: currentNap }),
+      });
+
       document.getElementById('caf-selected-name').textContent = r.name;
       document.getElementById('caf-selected-city').textContent = r.city || '';
       searchSection.style.display = 'none';
       fillSection.style.display = 'block';
+      countFormFields();
     } catch (err) {
       resultsDiv.innerHTML = '<div style="color:#f87171;font-size:11px;padding:4px">' + esc(err.message) + '</div>';
     }
   }
 
-  // Fill
-  document.getElementById('caf-fill-btn').addEventListener('click', async function() {
-    if (!currentNap) return;
-    var btn = this;
-    var status = document.getElementById('caf-status');
-    btn.disabled = true; btn.textContent = 'Remplissage...';
-    status.textContent = '';
+  // ═══ FILL ═══
+
+  async function doFill() {
+    if (!currentNap || filling) return;
+    filling = true;
+    fillBtn.disabled = true;
+    fillBtn.textContent = 'Remplissage...';
+    fillBtn.style.background = '#6366f1';
+    statusDiv.textContent = '';
 
     var fieldElements = _collectFields();
     var descriptors = fieldElements.map(function(f) {
@@ -313,7 +367,7 @@
         if ((fieldElements[j].id || fieldElements[j].name) === match.fieldId) { fEl = fieldElements[j]; break; }
       }
       if (!fEl) continue;
-      if (filledCount > 0) await _sleep(_gaussianRandom(500, 150));
+      if (filledCount > 0) await _sleep(_gaussianRandom(400, 120));
       if (fEl.tagName === 'select') {
         var ok = await _fillSelect(fEl.el, match.value);
         if (ok) { _highlight(fEl.el); filledCount++; }
@@ -323,16 +377,37 @@
       }
     }
 
-    btn.disabled = false; btn.textContent = 'Remplir la page';
-    status.style.color = '#22c55e';
-    status.textContent = filledCount + ' champs remplis';
-  });
+    filling = false;
+    fillBtn.disabled = false;
+    fillBtn.textContent = 'REMPLIR';
+    fillBtn.style.background = '#22c55e';
+    statusDiv.style.color = '#22c55e';
+    statusDiv.textContent = filledCount + ' champs remplis sur ' + fieldElements.length;
+  }
+
+  fillBtn.addEventListener('click', doFill);
+
+  // ═══ KEYBOARD SHORTCUT ═══
+
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+      e.preventDefault();
+      e.stopPropagation();
+      doFill();
+    }
+  }, true);
 
   // Change selection
   document.getElementById('caf-change-btn').addEventListener('click', function() {
     currentNap = null;
     searchInput.value = ''; resultsDiv.innerHTML = '';
     searchSection.style.display = 'block'; fillSection.style.display = 'none';
-    document.getElementById('caf-status').textContent = '';
+    statusDiv.textContent = '';
+    // Clear saved selection
+    fetch(LOCAL_SERVER + '/api/selection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(null),
+    }).catch(function() {});
   });
 })();

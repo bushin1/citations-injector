@@ -8,6 +8,8 @@ const VERSION = require('../package.json').version;
 const DASHBOARD_HTML = fs.readFileSync(path.join(__dirname, 'ui', 'dashboard.html'), 'utf-8');
 const PORT = parseInt(process.env.UI_PORT || '3847', 10);
 
+let selectedBusiness = null;
+
 const sseClients = new Set();
 
 function broadcastState() {
@@ -49,6 +51,39 @@ function start() {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       const ok = await applyUpdate();
       res.end(JSON.stringify({ ok }));
+      return;
+    }
+
+    if (req.url === '/api/selection' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify(selectedBusiness));
+      return;
+    }
+
+    if (req.url === '/api/selection' && req.method === 'POST') {
+      let body = '';
+      req.on('data', c => body += c);
+      req.on('end', () => {
+        try {
+          selectedBusiness = JSON.parse(body);
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ ok: true }));
+          bus.emit('update');
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ error: 'invalid json' }));
+        }
+      });
+      return;
+    }
+
+    if (req.url === '/api/selection' && req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      });
+      res.end();
       return;
     }
 
