@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Citations Injector</title>
+<title>Allo Chantiers</title>
 <style>
   :root {
     --bg: #0f1117;
     --surface: #1a1d27;
+    --surface-2: #222639;
     --border: #2a2d3a;
     --text: #e2e4ea;
     --muted: #6b7080;
@@ -20,67 +21,121 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
 
+  /* ─── HEADER ─── */
   .header {
     display: flex; align-items: center; gap: 16px;
-    padding: 24px 32px; border-bottom: 1px solid var(--border);
+    padding: 20px 28px; border-bottom: 1px solid var(--border);
   }
-  .logo { width: 48px; height: 48px; }
-  .header h1 { font-size: 20px; font-weight: 600; }
-  .header .version { font-size: 12px; color: var(--muted); font-family: monospace; }
-  .header .uptime { margin-left: auto; font-size: 13px; color: var(--muted); font-family: monospace; }
-
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 24px 32px; }
-  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
-
-  .card {
+  .logo { width: 40px; height: 40px; }
+  .header h1 { font-size: 18px; font-weight: 700; }
+  .header .version { font-size: 11px; color: var(--muted); font-family: monospace; }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+  .status-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 12px; padding: 20px;
   }
-  .card-title {
-    font-size: 13px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.05em; color: var(--muted); margin-bottom: 16px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .card-title .dot {
-    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-  }
-  .dot-green { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
   .dot-orange { background: var(--orange); }
   .dot-red { background: var(--red); }
 
-  .stat-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 0; border-bottom: 1px solid var(--border);
+  /* ─── UPDATE BANNER ─── */
+  .update-banner {
+    display: none; align-items: center; gap: 12px;
+    padding: 12px 28px;
+    background: linear-gradient(90deg, rgba(99,102,241,0.12), rgba(34,197,94,0.08));
+    border-bottom: 1px solid rgba(99,102,241,0.3);
   }
-  .stat-row:last-child { border-bottom: none; }
-  .stat-label { font-size: 14px; color: var(--muted); }
-  .stat-value { font-size: 14px; font-weight: 500; font-family: monospace; }
-
-  .browser-item {
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px 12px; border-radius: 8px;
-    background: rgba(99, 102, 241, 0.06); margin-bottom: 8px;
+  .update-banner.visible { display: flex; }
+  .update-banner .update-text { flex: 1; font-size: 13px; }
+  .update-banner .update-text strong { color: var(--accent-light); }
+  .update-btn {
+    padding: 6px 16px; border: none; border-radius: 6px; cursor: pointer;
+    font-size: 12px; font-weight: 600;
+    background: var(--accent); color: white;
   }
-  .browser-icon { font-size: 20px; }
-  .browser-port { font-family: monospace; font-size: 13px; color: var(--accent-light); }
-  .browser-time { font-size: 12px; color: var(--muted); margin-left: auto; }
+  .update-btn:hover { background: var(--accent-light); }
+  .update-btn:disabled { opacity: 0.5; cursor: wait; }
 
-  .page-item {
-    padding: 8px 12px; border-radius: 6px;
-    background: rgba(34, 197, 94, 0.06); margin-bottom: 6px;
-    font-size: 13px; display: flex; gap: 8px; align-items: center;
+  /* ─── LAYOUT ─── */
+  .main { display: flex; height: calc(100vh - 65px); }
+  .sidebar {
+    width: 300px; border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0;
   }
-  .page-url {
-    color: var(--text); font-family: monospace; font-size: 12px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+  .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+  @media (max-width: 800px) {
+    .main { flex-direction: column; height: auto; }
+    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); max-height: 50vh; }
   }
-  .page-plugin { font-size: 11px; color: var(--accent-light); white-space: nowrap; }
 
-  .empty { color: var(--muted); font-size: 13px; font-style: italic; padding: 12px 0; }
+  /* ─── SIDEBAR: GMB LIST ─── */
+  .sidebar-header {
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 8px; }
+  .search-box {
+    width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg); color: var(--text); font-size: 13px; outline: none;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  .gmb-list { flex: 1; overflow-y: auto; }
+  .gmb-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px; cursor: pointer; border-bottom: 1px solid rgba(42,45,58,0.4);
+    transition: background 0.15s;
+  }
+  .gmb-item:hover { background: var(--surface-2); }
+  .gmb-item.active { background: rgba(99,102,241,0.12); border-left: 3px solid var(--accent); }
+  .gmb-icon { font-size: 18px; flex-shrink: 0; }
+  .gmb-info { flex: 1; min-width: 0; }
+  .gmb-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gmb-city { font-size: 11px; color: var(--muted); }
+  .gmb-loading { padding: 20px 16px; color: var(--muted); font-size: 13px; text-align: center; }
 
-  .logs-card { grid-column: 1 / -1; }
-  .log-list { max-height: 260px; overflow-y: auto; font-family: monospace; font-size: 12px; }
-  .log-entry { padding: 4px 0; border-bottom: 1px solid rgba(42,45,58,0.5); display: flex; gap: 10px; }
+  /* ─── CONTENT AREA ─── */
+  .welcome {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; color: var(--muted); text-align: center; gap: 12px;
+  }
+  .welcome-icon { font-size: 48px; opacity: 0.3; }
+  .welcome h2 { font-size: 16px; font-weight: 600; color: var(--text); }
+  .welcome p { font-size: 13px; max-width: 300px; }
+
+  .biz-header { margin-bottom: 20px; }
+  .biz-name { font-size: 20px; font-weight: 700; }
+  .biz-address { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* ─── MODULES ─── */
+  .module { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; }
+  .module-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .module-header:hover { background: var(--surface-2); border-radius: 10px 10px 0 0; }
+  .module-icon { font-size: 16px; }
+  .module-title { font-size: 14px; font-weight: 600; flex: 1; }
+  .module-badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600;
+    background: rgba(99,102,241,0.15); color: var(--accent-light);
+  }
+  .module-body { padding: 14px 16px; }
+
+  /* ─── GOLOGIN STATUS ─── */
+  .golodin-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .browser-chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 6px; font-size: 12px;
+    background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2);
+  }
+  .browser-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+  /* ─── LOGS ─── */
+  .log-list { max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 11px; }
+  .log-entry { padding: 3px 0; border-bottom: 1px solid rgba(42,45,58,0.3); display: flex; gap: 8px; }
   .log-ts { color: var(--muted); white-space: nowrap; }
   .log-msg { color: var(--text); word-break: break-all; }
   .log-entry[data-level="ok"] .log-msg { color: var(--green); }
@@ -88,182 +143,249 @@
   .log-entry[data-level="inject"] .log-msg { color: var(--accent-light); }
   .log-entry[data-level="gone"] .log-msg { color: var(--red); }
 
-  .plugins-list { display: flex; flex-wrap: wrap; gap: 8px; }
-  .plugin-tag {
-    padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
-    background: rgba(99, 102, 241, 0.15); color: var(--accent-light);
-  }
-
-  .update-banner {
-    display: none; align-items: center; gap: 12px;
-    padding: 14px 32px;
-    background: linear-gradient(90deg, rgba(99,102,241,0.15), rgba(34,197,94,0.1));
-    border-bottom: 1px solid var(--accent);
-  }
-  .update-banner.visible { display: flex; }
-  .update-banner .update-icon { font-size: 18px; }
-  .update-banner .update-text { flex: 1; font-size: 14px; }
-  .update-banner .update-text strong { color: var(--accent-light); }
-  .update-btn {
-    padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer;
-    font-size: 13px; font-weight: 600;
-    background: var(--accent); color: white; transition: background 0.2s;
-  }
-  .update-btn:hover { background: var(--accent-light); }
-  .update-btn:disabled { opacity: 0.6; cursor: wait; }
+  .empty { color: var(--muted); font-size: 13px; font-style: italic; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <svg class="logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="48" height="48" rx="12" fill="#6366f1"/>
-    <path d="M14 18 C14 14, 18 12, 24 12 C30 12, 34 14, 34 18 L34 20 L14 20 Z" fill="white" opacity="0.9"/>
-    <rect x="14" y="22" width="20" height="3" rx="1.5" fill="white" opacity="0.7"/>
-    <rect x="14" y="27" width="14" height="3" rx="1.5" fill="white" opacity="0.5"/>
-    <rect x="14" y="32" width="18" height="3" rx="1.5" fill="white" opacity="0.3"/>
-    <circle cx="36" cy="36" r="8" fill="#22c55e"/>
-    <path d="M32.5 36 L35 38.5 L39.5 33.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <svg class="logo" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="40" height="40" rx="10" fill="#6366f1"/>
+    <text x="20" y="27" text-anchor="middle" fill="white" font-size="18" font-weight="700" font-family="-apple-system, sans-serif">AC</text>
   </svg>
   <div>
-    <h1>Citations Injector</h1>
+    <h1>Allo Chantiers</h1>
     <span class="version" id="version"></span>
   </div>
-  <div class="uptime" id="uptime"></div>
+  <div class="header-right">
+    <div class="status-pill">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-label">Connexion...</span>
+    </div>
+  </div>
 </div>
 
 <div class="update-banner" id="update-banner">
-  <span class="update-icon">🚀</span>
   <span class="update-text" id="update-text"></span>
-  <button class="update-btn" id="update-btn" onclick="doUpdate()">Mettre à jour</button>
+  <button class="update-btn" id="update-btn" onclick="doUpdate()">Mettre a jour</button>
 </div>
 
-<div class="grid">
-  <div class="card">
-    <div class="card-title">
-      <span class="dot" id="status-dot"></span>
-      Statut
+<div class="main">
+  <!-- SIDEBAR: GMB list -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Business</div>
+      <input class="search-box" id="gmb-search" type="text" placeholder="Rechercher un business...">
     </div>
-    <div class="stat-row">
-      <span class="stat-label">Navigateurs connectés</span>
-      <span class="stat-value" id="browser-count">0</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Pages injectées</span>
-      <span class="stat-value" id="page-count">0</span>
-    </div>
-    <div class="stat-row">
-      <span class="stat-label">Plugins actifs</span>
-      <span class="stat-value" id="plugin-count">0</span>
+    <div class="gmb-list" id="gmb-list">
+      <div class="gmb-loading" id="gmb-loading">Chargement...</div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-title">Plugins</div>
-    <div class="plugins-list" id="plugins"></div>
-  </div>
+  <!-- CONTENT -->
+  <div class="content" id="content">
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">AC</div>
+      <h2>Selectionne un business</h2>
+      <p>Choisis un business dans la liste a gauche pour commencer a travailler</p>
+    </div>
 
-  <div class="card">
-    <div class="card-title">Navigateurs</div>
-    <div id="browsers"><p class="empty">En attente de profils GoLogin…</p></div>
-  </div>
+    <div id="biz-view" style="display:none">
+      <div class="biz-header">
+        <div class="biz-name" id="biz-name"></div>
+        <div class="biz-address" id="biz-address"></div>
+      </div>
 
-  <div class="card">
-    <div class="card-title">Pages injectées</div>
-    <div id="pages"><p class="empty">Aucune page pour le moment</p></div>
-  </div>
+      <!-- Module: GoLogin -->
+      <div class="module">
+        <div class="module-header">
+          <span class="module-icon">🌐</span>
+          <span class="module-title">GoLogin</span>
+          <span class="module-badge" id="browser-count-badge">0 connecte</span>
+        </div>
+        <div class="module-body">
+          <div class="golodin-grid" id="browsers-grid">
+            <span class="empty">En attente de profils GoLogin...</span>
+          </div>
+        </div>
+      </div>
 
-  <div class="card logs-card">
-    <div class="card-title">Logs</div>
-    <div class="log-list" id="logs"></div>
+      <!-- Module: Citations -->
+      <div class="module">
+        <div class="module-header">
+          <span class="module-icon">📋</span>
+          <span class="module-title">Citations</span>
+          <span class="module-badge" id="pages-badge">0 page</span>
+        </div>
+        <div class="module-body">
+          <p style="font-size:13px;color:var(--muted);margin-bottom:10px">
+            Ouvre un site de citation dans GoLogin, puis appuie sur <kbd style="background:var(--surface-2);padding:2px 6px;border-radius:4px;font-size:12px;color:var(--text)">Ctrl+Shift+F</kbd> pour remplir automatiquement.
+          </p>
+          <div id="pages-list">
+            <span class="empty">Aucune page injectee</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Module: Logs -->
+      <div class="module">
+        <div class="module-header" onclick="document.getElementById('logs-body').style.display = document.getElementById('logs-body').style.display === 'none' ? 'block' : 'none'">
+          <span class="module-icon">📜</span>
+          <span class="module-title">Activite</span>
+          <span class="module-badge" id="log-count-badge">0</span>
+        </div>
+        <div class="module-body" id="logs-body">
+          <div class="log-list" id="logs"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
 const $ = (s) => document.getElementById(s);
+// API calls go through the local proxy (server.js proxies /api/ext/* → dashboard)
 
-function fmtUptime(ms) {
-  const s = Math.floor(ms / 1000);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  return [h, m, sec].map(v => String(v).padStart(2, '0')).join(':');
-}
+let allGmbs = [];
+let selectedGmb = null;
+let logCount = 0;
+
+// ═══ UTILS ═══
+function esc(s) { const d = document.createElement('span'); d.textContent = s; return d.innerHTML; }
 
 function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString('fr-FR', { hour12: false });
 }
 
-function renderUpdate(update) {
-  const banner = $('update-banner');
-  if (!update || !update.latest) {
-    banner.classList.remove('visible');
+// ═══ GMB LIST ═══
+async function loadGmbs() {
+  try {
+    const res = await fetch('/api/ext/citations/nap-search?q=*');
+    if (!res.ok) throw new Error(res.status);
+    allGmbs = await res.json();
+    renderGmbList(allGmbs);
+
+    // Auto-select if we have a saved selection
+    try {
+      const selRes = await fetch('/api/selection');
+      if (selRes.ok) {
+        const sel = await selRes.json();
+        if (sel && sel.gmbId) {
+          const match = allGmbs.find(g => g.gmbId === sel.gmbId);
+          if (match) selectGmb(match, sel.nap);
+        }
+      }
+    } catch {}
+  } catch (err) {
+    $('gmb-loading').textContent = 'Erreur : ' + err.message;
+  }
+}
+
+function renderGmbList(list) {
+  const container = $('gmb-list');
+  if (!list.length) {
+    container.innerHTML = '<div class="gmb-loading">Aucun business trouve</div>';
     return;
   }
-  banner.classList.add('visible');
-  $('update-text').innerHTML = 'Nouvelle version disponible : <strong>v' + update.latest + '</strong> (actuelle : v' + update.current + ')';
+  container.innerHTML = list.map(g =>
+    '<div class="gmb-item' + (selectedGmb && selectedGmb.gmbId === g.gmbId ? ' active' : '') + '" data-id="' + esc(g.gmbId) + '">' +
+    '  <span class="gmb-icon">📍</span>' +
+    '  <div class="gmb-info">' +
+    '    <div class="gmb-name">' + esc(g.name) + '</div>' +
+    '    <div class="gmb-city">' + esc(g.city || '') + '</div>' +
+    '  </div>' +
+    '</div>'
+  ).join('');
+  container.querySelectorAll('.gmb-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.id;
+      const gmb = allGmbs.find(g => g.gmbId === id);
+      if (gmb) fetchAndSelect(gmb);
+    });
+  });
 }
 
-async function doUpdate() {
-  const btn = $('update-btn');
-  btn.disabled = true;
-  btn.textContent = 'Téléchargement…';
+async function fetchAndSelect(gmb) {
   try {
-    const res = await fetch('/api/update', { method: 'POST' });
-    const data = await res.json();
-    if (data.ok) {
-      btn.textContent = 'Redémarrage…';
-    } else {
-      btn.textContent = 'Échec — réessayer';
-      btn.disabled = false;
-    }
-  } catch {
-    btn.textContent = 'Échec — réessayer';
-    btn.disabled = false;
+    const res = await fetch('/api/ext/citations/nap/' + gmb.gmbId);
+    if (!res.ok) throw new Error(res.status);
+    const nap = await res.json();
+    selectGmb(gmb, nap);
+    // Save selection for injected panels
+    fetch('/api/selection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: gmb.name, city: gmb.city || '', gmbId: gmb.gmbId, nap: nap }),
+    });
+  } catch (err) {
+    console.error('Fetch NAP failed:', err);
   }
 }
 
-function render(data) {
+function selectGmb(gmb, nap) {
+  selectedGmb = { ...gmb, nap };
+  $('welcome').style.display = 'none';
+  $('biz-view').style.display = 'block';
+  $('biz-name').textContent = gmb.name;
+  $('biz-address').textContent = [nap.street, nap.city, nap.state, nap.zip].filter(Boolean).join(', ');
+  // Re-render list to show active
+  renderGmbList(filteredGmbs());
+}
+
+// ═══ SEARCH ═══
+$('gmb-search').addEventListener('input', () => {
+  renderGmbList(filteredGmbs());
+});
+
+function filteredGmbs() {
+  const q = $('gmb-search').value.trim().toLowerCase();
+  if (!q) return allGmbs;
+  return allGmbs.filter(g =>
+    (g.name || '').toLowerCase().includes(q) ||
+    (g.city || '').toLowerCase().includes(q)
+  );
+}
+
+// ═══ SSE STATE ═══
+function renderState(data) {
   $('version').textContent = 'v' + (data.version || '?');
-  $('uptime').textContent = '⏱ ' + fmtUptime(data.uptime);
-  renderUpdate(data.update);
 
   const dot = $('status-dot');
+  const label = $('status-label');
   if (data.browsers.length > 0) {
-    dot.className = 'dot dot-green';
+    dot.className = 'status-dot dot-green';
+    label.textContent = data.browsers.length + ' navigateur' + (data.browsers.length > 1 ? 's' : '');
   } else {
-    dot.className = 'dot dot-orange';
+    dot.className = 'status-dot dot-orange';
+    label.textContent = 'En attente';
   }
 
-  $('browser-count').textContent = data.browsers.length;
-  $('page-count').textContent = data.pages.length;
-  $('plugin-count').textContent = data.plugins.length;
-
-  $('plugins').innerHTML = data.plugins.length
-    ? data.plugins.map(p => '<span class="plugin-tag">' + p + '</span>').join('')
-    : '<p class="empty">Aucun plugin</p>';
-
-  $('browsers').innerHTML = data.browsers.length
+  // Browsers
+  $('browser-count-badge').textContent = data.browsers.length + ' connecte' + (data.browsers.length > 1 ? 's' : '');
+  $('browsers-grid').innerHTML = data.browsers.length
     ? data.browsers.map(b =>
-        '<div class="browser-item">' +
-          '<span class="browser-icon">🌐</span>' +
-          '<span class="browser-port">:' + b.port + '</span>' +
-          '<span class="browser-time">depuis ' + fmtTime(b.connectedAt) + '</span>' +
-        '</div>'
+        '<div class="browser-chip"><span class="browser-chip-dot"></span> Port ' + b.port + '</div>'
       ).join('')
-    : '<p class="empty">En attente de profils GoLogin…</p>';
+    : '<span class="empty">En attente de profils GoLogin...</span>';
 
-  $('pages').innerHTML = data.pages.length
+  // Pages
+  $('pages-badge').textContent = data.pages.length + ' page' + (data.pages.length > 1 ? 's' : '');
+  $('pages-list').innerHTML = data.pages.length
     ? data.pages.map(p =>
-        '<div class="page-item">' +
-          '<span class="page-plugin">' + p.plugin + '</span>' +
-          '<span class="page-url">' + p.url + '</span>' +
+        '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px">' +
+        '<span style="color:var(--accent-light);font-weight:500;white-space:nowrap">' + esc(p.plugin) + '</span>' +
+        '<span style="color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace;font-size:11px">' + esc(p.url) + '</span>' +
         '</div>'
       ).join('')
-    : '<p class="empty">Aucune page pour le moment</p>';
+    : '<span class="empty">Aucune page injectee</span>';
+
+  // Update
+  renderUpdate(data.update);
 }
 
 function renderLog(entry) {
+  logCount++;
+  $('log-count-badge').textContent = logCount;
   const el = document.createElement('div');
   el.className = 'log-entry';
   el.dataset.level = entry.level;
@@ -273,32 +395,36 @@ function renderLog(entry) {
   $('logs').scrollTop = $('logs').scrollHeight;
 }
 
-// SSE
+// ═══ UPDATE ═══
+function renderUpdate(update) {
+  const banner = $('update-banner');
+  if (!update || !update.latest) { banner.classList.remove('visible'); return; }
+  banner.classList.add('visible');
+  $('update-text').innerHTML = 'Nouvelle version : <strong>v' + update.latest + '</strong>';
+}
+
+async function doUpdate() {
+  const btn = $('update-btn');
+  btn.disabled = true; btn.textContent = 'Telechargement...';
+  try {
+    const res = await fetch('/api/update', { method: 'POST' });
+    const data = await res.json();
+    btn.textContent = data.ok ? 'Redemarrage...' : 'Echec';
+    if (!data.ok) btn.disabled = false;
+  } catch { btn.textContent = 'Echec'; btn.disabled = false; }
+}
+
+// ═══ SSE ═══
 const evtSource = new EventSource('/events');
-
-evtSource.addEventListener('state', (e) => {
-  render(JSON.parse(e.data));
-});
-
-evtSource.addEventListener('log', (e) => {
-  renderLog(JSON.parse(e.data));
-});
-
+evtSource.addEventListener('state', (e) => renderState(JSON.parse(e.data)));
+evtSource.addEventListener('log', (e) => renderLog(JSON.parse(e.data)));
 evtSource.onerror = () => {
-  $('status-dot').className = 'dot dot-red';
+  $('status-dot').className = 'status-dot dot-red';
+  $('status-label').textContent = 'Deconnecte';
 };
 
-// Keep uptime ticking
-setInterval(() => {
-  const el = $('uptime');
-  if (!el._start) return;
-  el.textContent = '⏱ ' + fmtUptime(Date.now() - el._start);
-}, 1000);
-
-evtSource.addEventListener('state', (e) => {
-  const data = JSON.parse(e.data);
-  $('uptime')._start = Date.now() - data.uptime;
-});
+// ═══ INIT ═══
+loadGmbs();
 </script>
 
 </body>

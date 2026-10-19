@@ -13,7 +13,7 @@ const VERSION = require('../package.json').version;
 
 async function run() {
   console.log(`\n  ╔══════════════════════════════════╗`);
-  console.log(`  ║   Citations Injector  v${VERSION}     ║`);
+  console.log(`  ║     Allo Chantiers  v${VERSION}       ║`);
   console.log(`  ╚══════════════════════════════════╝\n`);
 
   const config = validate(load());

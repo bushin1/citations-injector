@@ -12,15 +12,15 @@ const REPO = 'bushin1/citations-injector';
 let updateInfo = null;
 
 function getAssetName() {
-  if (process.platform === 'win32') return 'citations-injector-win.exe';
-  if (process.platform === 'darwin') return 'citations-injector-mac';
-  return 'citations-injector-linux';
+  if (process.platform === 'win32') return 'allo-chantiers-win.exe';
+  if (process.platform === 'darwin') return 'allo-chantiers-mac';
+  return 'allo-chantiers-linux';
 }
 
 function httpsGet(url) {
   return new Promise((resolve, reject) => {
     const get = (u) => {
-      https.get(u, { headers: { 'User-Agent': 'citations-injector' } }, (res) => {
+      https.get(u, { headers: { 'User-Agent': 'allo-chantiers' } }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           return get(res.headers.location);
         }
@@ -37,7 +37,7 @@ function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
     const get = (u) => {
       const mod = u.startsWith('https') ? https : http;
-      mod.get(u, { headers: { 'User-Agent': 'citations-injector' } }, (res) => {
+      mod.get(u, { headers: { 'User-Agent': 'allo-chantiers' } }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           return get(res.headers.location);
         }

@@ -1,12 +1,16 @@
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { bus, snapshot } = require('./state');
 const { getUpdateInfo, applyUpdate } = require('./updater');
+const { load } = require('./config');
 
 const VERSION = require('../package.json').version;
 const DASHBOARD_HTML = fs.readFileSync(path.join(__dirname, 'ui', 'dashboard.html'), 'utf-8');
 const PORT = parseInt(process.env.UI_PORT || '3847', 10);
+
+const cfg = load();
 
 let selectedBusiness = null;
 
@@ -25,6 +29,26 @@ function broadcastLog(entry) {
   for (const res of sseClients) {
     try { res.write(msg); } catch { sseClients.delete(res); }
   }
+}
+
+function proxyDashboard(reqPath, res) {
+  const url = cfg.dashboardBase + reqPath;
+  const mod = url.startsWith('https') ? https : http;
+  const proxyReq = mod.get(url, { headers: { 'x-ext-token': cfg.extToken } }, (proxyRes) => {
+    let body = '';
+    proxyRes.on('data', c => body += c);
+    proxyRes.on('end', () => {
+      res.writeHead(proxyRes.statusCode, {
+        'Content-Type': proxyRes.headers['content-type'] || 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      });
+      res.end(body);
+    });
+  });
+  proxyReq.on('error', (err) => {
+    res.writeHead(502, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: err.message }));
+  });
 }
 
 function start() {
@@ -85,6 +109,11 @@ function start() {
       });
       res.end();
       return;
+    }
+
+    // Proxy dashboard API calls
+    if (req.url.startsWith('/api/ext/')) {
+      return proxyDashboard(req.url, res);
     }
 
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });

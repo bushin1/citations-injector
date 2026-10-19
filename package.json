@@ -1,14 +1,14 @@
 {
-  "name": "citations-injector",
-  "version": "1.5.0",
-  "description": "Logiciel d'injection CDP — injecte automatiquement des panneaux dans les profils GoLogin",
+  "name": "allo-chantiers",
+  "version": "2.0.0",
+  "description": "Companion local pour l'equipe Allo Chantiers — citations, GoLogin, et plus",
   "main": "src/main.js",
   "bin": "src/main.js",
   "scripts": {
     "start": "node src/main.js",
     "dev": "node --watch src/main.js",
-    "build:win": "pkg . --targets node18-win-x64 --output dist/citations-injector-win.exe",
-    "build:mac": "pkg . --targets node18-macos-arm64 --output dist/citations-injector-mac",
+    "build:win": "pkg . --targets node18-win-x64 --output dist/allo-chantiers-win.exe",
+    "build:mac": "pkg . --targets node18-macos-arm64 --output dist/allo-chantiers-mac",
     "build:all": "npm run build:win && npm run build:mac"
   },
   "pkg": {
