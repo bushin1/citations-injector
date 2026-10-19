@@ -4,7 +4,7 @@ const { load, validate } = require('./config');
 const { scan } = require('./discovery');
 const { connectAndInject } = require('./injector');
 const { loadAll } = require('./plugins');
-const { start, openBrowser } = require('./server');
+const { start } = require('./server');
 const { state, setPlugins } = require('./state');
 const { checkForUpdate } = require('./updater');
 const log = require('./log');
@@ -26,8 +26,7 @@ async function run() {
   }
   setPlugins(plugins);
 
-  const uiPort = start();
-  openBrowser(uiPort);
+  start();
 
   checkForUpdate();
 
