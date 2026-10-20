@@ -199,6 +199,60 @@
   .log-entry[data-level="inject"] .log-msg { color: var(--accent-light); }
   .log-entry[data-level="gone"] .log-msg { color: var(--red); }
   .empty { color: var(--muted); font-size: 13px; font-style: italic; }
+
+  /* ─── AUTOPILOT ─── */
+  .ap-controls { display:flex; gap:8px; margin-bottom:14px; }
+  .ap-btn {
+    flex:1; padding:10px; border:none; border-radius:8px; font-size:13px; font-weight:700;
+    cursor:pointer; letter-spacing:0.3px; transition: all .15s;
+  }
+  .ap-btn-start { background: var(--green); color:white; }
+  .ap-btn-start:hover { background: #16a34a; }
+  .ap-btn-start:disabled { opacity: 0.4; cursor:not-allowed; }
+  .ap-btn-stop { background: var(--red); color:white; }
+  .ap-btn-stop:hover { background: #dc2626; }
+  .ap-status-box {
+    background: var(--bg); border:1px solid var(--border); border-radius:8px;
+    padding:12px; margin-bottom:12px;
+  }
+  .ap-current { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .ap-current-name { font-size:14px; font-weight:600; }
+  .ap-current-step { font-size:12px; color:var(--muted); }
+  .ap-pulse {
+    width:10px; height:10px; border-radius:50%; flex-shrink:0;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity:1; }
+    50% { opacity:0.3; }
+  }
+  .ap-pulse.running { background: var(--green); }
+  .ap-pulse.waiting { background: var(--amber); }
+  .ap-pulse.cooldown { background: var(--blue); }
+  .ap-sms-box {
+    display:none; background: rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3);
+    border-radius:8px; padding:12px; margin-top:10px;
+  }
+  .ap-sms-box.visible { display:block; }
+  .ap-sms-input {
+    width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px;
+    background:var(--bg); color:var(--text); font-size:16px; font-weight:700;
+    letter-spacing:4px; text-align:center; outline:none; margin-top:8px;
+  }
+  .ap-sms-input:focus { border-color: var(--amber); }
+  .ap-sms-btn {
+    width:100%; padding:8px; border:none; border-radius:6px; margin-top:8px;
+    background:var(--amber); color:white; font-weight:700; font-size:13px; cursor:pointer;
+  }
+  .ap-result-list { max-height:200px; overflow-y:auto; margin-top:8px; }
+  .ap-result {
+    display:flex; align-items:center; gap:8px; padding:6px 0;
+    border-bottom:1px solid rgba(42,45,58,0.3); font-size:12px;
+  }
+  .ap-result:last-child { border:none; }
+  .ap-result-icon { font-size:14px; flex-shrink:0; }
+  .ap-result-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
   .toast {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
     background: var(--surface-2); border:1px solid var(--border); color: var(--text);
@@ -284,6 +338,39 @@
           <span class="module-title">Infos & compte Google</span>
         </div>
         <div class="module-body" id="nap-body"></div>
+      </div>
+
+      <!-- Module: Autopilot Yelp -->
+      <div class="module" id="mod-autopilot">
+        <div class="module-header" onclick="toggleModule('mod-autopilot')">
+          <span class="module-icon">🤖</span>
+          <span class="module-title">Autopilot Yelp</span>
+          <span class="module-badge" id="ap-badge">—</span>
+        </div>
+        <div class="module-body">
+          <p style="font-size:12px;color:var(--muted);margin:4px 0 12px">
+            Lance un profil GoLogin (avec proxy residentiel), puis clique ▶ pour creer les fiches Yelp automatiquement. Le bot navigue, remplit, et soumet — il se met en pause pour le code SMS.
+          </p>
+          <div class="ap-controls">
+            <button class="ap-btn ap-btn-start" id="ap-start" onclick="startAutopilot()">▶ Lancer l'autopilot</button>
+            <button class="ap-btn ap-btn-stop" id="ap-stop" onclick="stopAutopilot()" style="display:none">■ Arreter</button>
+          </div>
+          <div class="ap-status-box" id="ap-status-box" style="display:none">
+            <div class="ap-current">
+              <span class="ap-pulse running" id="ap-pulse"></span>
+              <span class="ap-current-name" id="ap-biz-name">—</span>
+              <span style="margin-left:auto;font-size:11px;color:var(--muted)" id="ap-counter">—</span>
+            </div>
+            <div class="ap-current-step" id="ap-step">—</div>
+            <div class="ap-sms-box" id="ap-sms-box">
+              <div style="font-size:13px;font-weight:600;color:var(--amber)">📱 Code SMS requis</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:4px">Saisis le code recu par SMS pour continuer la verification Yelp.</div>
+              <input class="ap-sms-input" id="ap-sms-code" type="text" placeholder="000000" maxlength="8">
+              <button class="ap-sms-btn" onclick="sendSmsCode()">Envoyer le code</button>
+            </div>
+          </div>
+          <div class="ap-result-list" id="ap-results"></div>
+        </div>
       </div>
 
       <!-- Module: GoLogin -->
@@ -581,6 +668,105 @@ function colorFor(s) {
   return map[s] || 'neutral';
 }
 
+// ═══ AUTOPILOT ═══
+async function startAutopilot() {
+  const btn = $('ap-start');
+  btn.disabled = true; btn.textContent = 'Demarrage...';
+  try {
+    const body = {};
+    // If a specific business is selected, only process that one
+    if (selected) body.businessIds = [selected.gmbId];
+    const res = await fetch('/api/autopilot/start', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error((await res.json()).error || res.status);
+    toast('Autopilot demarre');
+  } catch (err) {
+    toast('Erreur : ' + err.message);
+    btn.disabled = false; btn.textContent = '▶ Lancer l\'autopilot';
+  }
+}
+
+async function stopAutopilot() {
+  try {
+    await fetch('/api/autopilot/stop', { method: 'POST' });
+    toast('Autopilot arrete');
+  } catch {}
+}
+
+async function sendSmsCode() {
+  const code = $('ap-sms-code').value.trim();
+  if (!code) return;
+  try {
+    await fetch('/api/autopilot/sms', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    $('ap-sms-code').value = '';
+    toast('Code envoye');
+  } catch (err) {
+    toast('Erreur : ' + err.message);
+  }
+}
+$('ap-sms-code') && $('ap-sms-code').addEventListener('keydown', e => { if (e.key === 'Enter') sendSmsCode(); });
+
+function renderAutopilot(ap) {
+  if (!ap) return;
+  const startBtn = $('ap-start'), stopBtn = $('ap-stop'), statusBox = $('ap-status-box');
+  const pulse = $('ap-pulse'), smsBox = $('ap-sms-box'), badge = $('ap-badge');
+
+  if (ap.running || ap.status === 'running') {
+    startBtn.style.display = 'none';
+    stopBtn.style.display = 'block';
+    statusBox.style.display = 'block';
+    badge.textContent = '🔄';
+
+    // Current business
+    if (ap.currentBusiness) {
+      $('ap-biz-name').textContent = ap.currentBusiness.name || '—';
+      $('ap-counter').textContent = ap.currentBusiness.index + '/' + ap.currentBusiness.total;
+    }
+
+    // Flow status
+    const fStatus = ap.flowStatus || '';
+    $('ap-step').textContent = ap.flowMessage || fStatus || '...';
+
+    // Pulse color
+    pulse.className = 'ap-pulse';
+    if (fStatus === 'cooldown') { pulse.classList.add('cooldown'); }
+    else if (fStatus.startsWith('waiting')) { pulse.classList.add('waiting'); }
+    else { pulse.classList.add('running'); }
+
+    // SMS box
+    if (fStatus === 'waiting_sms') { smsBox.classList.add('visible'); }
+    else { smsBox.classList.remove('visible'); }
+  } else {
+    startBtn.style.display = 'block'; startBtn.disabled = false;
+    startBtn.textContent = '▶ Lancer l\'autopilot';
+    stopBtn.style.display = 'none';
+    if (!ap.completed || ap.completed.length === 0) statusBox.style.display = 'none';
+    smsBox.classList.remove('visible');
+    badge.textContent = ap.status === 'stopped' ? '⏹' : '—';
+  }
+
+  // Completed results
+  if (ap.completed && ap.completed.length > 0) {
+    statusBox.style.display = 'block';
+    const icons = { done: '✅', waiting_sms: '📱', video: '🎬', captcha: '🔒', error: '❌' };
+    $('ap-results').innerHTML = ap.completed.map(c =>
+      '<div class="ap-result">' +
+        '<span class="ap-result-icon">' + (icons[c.result] || '❓') + '</span>' +
+        '<span class="ap-result-name">' + esc(c.name) + '</span>' +
+        '<span style="font-size:11px;color:var(--muted)">' + (c.result === 'done' ? 'Fait' : c.result) + '</span>' +
+      '</div>'
+    ).join('');
+
+    const doneCount = ap.completed.filter(c => c.result === 'done').length;
+    badge.textContent = doneCount + '/' + ap.completed.length;
+  }
+}
+
 // ═══ SSE STATE ═══
 function renderState(data) {
   $('version').textContent = 'v' + (data.version || '?');
@@ -597,6 +783,7 @@ function renderState(data) {
     ? data.browsers.map(b => '<div class="browser-chip"><span class="browser-chip-dot"></span> Port ' + b.port + '</div>').join('')
     : '<span class="empty">En attente de profils GoLogin...</span>';
   renderUpdate(data.update);
+  renderAutopilot(data.autopilot);
 }
 
 function renderLog(entry) {

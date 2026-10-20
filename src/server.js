@@ -6,6 +6,7 @@ const { bus, snapshot } = require('./state');
 const { getUpdateInfo, applyUpdate } = require('./updater');
 const { load } = require('./config');
 
+const { runAutopilot, stopAutopilot, getState: getAutopilotState, setSmsCode } = require('./autopilot');
 const VERSION = require('../package.json').version;
 const DASHBOARD_HTML = fs.readFileSync(path.join(__dirname, 'ui', 'dashboard.html'), 'utf-8');
 const PORT = parseInt(process.env.UI_PORT || '3847', 10);
@@ -48,7 +49,7 @@ let selectedBusiness = null;
 const sseClients = new Set();
 
 function broadcastState() {
-  const data = { ...snapshot(), version: VERSION, update: getUpdateInfo() };
+  const data = { ...snapshot(), version: VERSION, update: getUpdateInfo(), autopilot: getAutopilotState() };
   const msg = `event: state\ndata: ${JSON.stringify(data)}\n\n`;
   for (const res of sseClients) {
     try { res.write(msg); } catch { sseClients.delete(res); }
@@ -117,7 +118,7 @@ function start() {
       sseClients.add(res);
       req.on('close', () => sseClients.delete(res));
 
-      const data = { ...snapshot(), version: VERSION, update: getUpdateInfo() };
+      const data = { ...snapshot(), version: VERSION, update: getUpdateInfo(), autopilot: getAutopilotState() };
       res.write(`event: state\ndata: ${JSON.stringify(data)}\n\n`);
       return;
     }
@@ -183,6 +184,71 @@ function start() {
     }
 
     if (req.url === '/api/selection' && req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      });
+      res.end();
+      return;
+    }
+
+    // ── Autopilot API ──
+    if (req.url === '/api/autopilot/start' && req.method === 'POST') {
+      let body = '';
+      req.on('data', c => body += c);
+      req.on('end', () => {
+        try {
+          const opts = body ? JSON.parse(body) : {};
+          // Start autopilot in background
+          runAutopilot({
+            dashboardBase: cfg.dashboardBase,
+            token: currentToken,
+            goLoginApiPort: cfg.goLoginApiPort,
+            ...opts,
+          });
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ ok: true, message: 'Autopilot demarre' }));
+        } catch (err) {
+          res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+      return;
+    }
+
+    if (req.url === '/api/autopilot/stop' && req.method === 'POST') {
+      stopAutopilot();
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
+    if (req.url === '/api/autopilot/status' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify(getAutopilotState()));
+      return;
+    }
+
+    if (req.url === '/api/autopilot/sms' && req.method === 'POST') {
+      let body = '';
+      req.on('data', c => body += c);
+      req.on('end', () => {
+        try {
+          const { code } = JSON.parse(body);
+          if (!code) throw new Error('code requis');
+          setSmsCode(String(code).trim());
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ ok: true }));
+        } catch (err) {
+          res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+      return;
+    }
+
+    if (req.url.startsWith('/api/autopilot') && req.method === 'OPTIONS') {
       res.writeHead(204, {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
