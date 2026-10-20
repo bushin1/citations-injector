@@ -15,8 +15,11 @@
     --accent: #6366f1;
     --accent-light: #818cf8;
     --green: #22c55e;
+    --blue: #3b82f6;
+    --amber: #f59e0b;
+    --orange: #f97316;
     --red: #ef4444;
-    --orange: #f59e0b;
+    --gray: #6b7280;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
@@ -24,10 +27,12 @@
   /* ─── HEADER ─── */
   .header {
     display: flex; align-items: center; gap: 16px;
-    padding: 20px 28px; border-bottom: 1px solid var(--border);
+    padding: 16px 28px; border-bottom: 1px solid var(--border);
+    -webkit-app-region: drag;
   }
-  .logo { width: 40px; height: 40px; }
-  .header h1 { font-size: 18px; font-weight: 700; }
+  .header button, .header a, .header input { -webkit-app-region: no-drag; }
+  .logo { width: 36px; height: 36px; }
+  .header h1 { font-size: 17px; font-weight: 700; }
   .header .version { font-size: 11px; color: var(--muted); font-family: monospace; }
   .header-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
   .status-pill {
@@ -37,7 +42,7 @@
   }
   .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
-  .dot-orange { background: var(--orange); }
+  .dot-orange { background: var(--amber); }
   .dot-red { background: var(--red); }
 
   /* ─── UPDATE BANNER ─── */
@@ -59,23 +64,20 @@
   .update-btn:disabled { opacity: 0.5; cursor: wait; }
 
   /* ─── LAYOUT ─── */
-  .main { display: flex; height: calc(100vh - 65px); }
+  .main { display: flex; height: calc(100vh - 69px); }
   .sidebar {
-    width: 300px; border-right: 1px solid var(--border);
+    width: 310px; border-right: 1px solid var(--border);
     display: flex; flex-direction: column; flex-shrink: 0;
   }
   .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
   @media (max-width: 800px) {
     .main { flex-direction: column; height: auto; }
-    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); max-height: 50vh; }
+    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); max-height: 45vh; }
   }
 
-  /* ─── SIDEBAR: GMB LIST ─── */
-  .sidebar-header {
-    padding: 16px 16px 12px;
-    border-bottom: 1px solid var(--border);
-  }
-  .sidebar-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 8px; }
+  /* ─── SIDEBAR ─── */
+  .sidebar-header { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); }
+  .sidebar-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 8px; display:flex; justify-content:space-between; }
   .search-box {
     width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px;
     background: var(--bg); color: var(--text); font-size: 13px; outline: none;
@@ -88,43 +90,99 @@
     transition: background 0.15s;
   }
   .gmb-item:hover { background: var(--surface-2); }
-  .gmb-item.active { background: rgba(99,102,241,0.12); border-left: 3px solid var(--accent); }
-  .gmb-icon { font-size: 18px; flex-shrink: 0; }
+  .gmb-item.active { background: rgba(99,102,241,0.12); border-left: 3px solid var(--accent); padding-left: 13px; }
   .gmb-info { flex: 1; min-width: 0; }
   .gmb-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .gmb-city { font-size: 11px; color: var(--muted); }
+  .gmb-progress { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0; }
+  .gmb-count { font-size: 11px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .gmb-count.done { color: var(--green); }
+  .mini-bar { width: 42px; height: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
+  .mini-bar span { display:block; height:100%; background: var(--green); }
   .gmb-loading { padding: 20px 16px; color: var(--muted); font-size: 13px; text-align: center; }
 
-  /* ─── CONTENT AREA ─── */
+  /* ─── CONTENT ─── */
   .welcome {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     height: 100%; color: var(--muted); text-align: center; gap: 12px;
   }
-  .welcome-icon { font-size: 48px; opacity: 0.3; }
+  .welcome-icon { width:64px; height:64px; opacity: 0.25; }
   .welcome h2 { font-size: 16px; font-weight: 600; color: var(--text); }
-  .welcome p { font-size: 13px; max-width: 300px; }
+  .welcome p { font-size: 13px; max-width: 320px; }
 
-  .biz-header { margin-bottom: 20px; }
+  .biz-header { margin-bottom: 18px; display:flex; align-items:flex-start; gap:14px; }
+  .biz-header-main { flex:1; min-width:0; }
   .biz-name { font-size: 20px; font-weight: 700; }
-  .biz-address { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .biz-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .biz-progress-ring { text-align:center; flex-shrink:0; }
+  .big-pct { font-size: 22px; font-weight: 700; }
+  .biz-pct-label { font-size: 11px; color: var(--muted); }
 
   /* ─── MODULES ─── */
-  .module { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; }
+  .module { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; overflow:hidden; }
   .module-header {
     display: flex; align-items: center; gap: 10px;
-    padding: 14px 16px; border-bottom: 1px solid var(--border);
-    cursor: pointer;
+    padding: 13px 16px; cursor: pointer; user-select:none;
   }
-  .module-header:hover { background: var(--surface-2); border-radius: 10px 10px 0 0; }
-  .module-icon { font-size: 16px; }
+  .module-header:hover { background: var(--surface-2); }
+  .module-icon { font-size: 15px; }
   .module-title { font-size: 14px; font-weight: 600; flex: 1; }
   .module-badge {
     font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600;
     background: rgba(99,102,241,0.15); color: var(--accent-light);
   }
-  .module-body { padding: 14px 16px; }
+  .module-body { padding: 4px 16px 16px; border-top: 1px solid var(--border); }
+  .module.collapsed .module-body { display:none; }
+  .module.collapsed .module-header { }
 
-  /* ─── GOLOGIN STATUS ─── */
+  /* ─── NAP / ACCOUNT ─── */
+  .kv-grid { display:grid; grid-template-columns: auto 1fr; gap:6px 14px; font-size:13px; margin-top:10px; }
+  .kv-key { color: var(--muted); }
+  .kv-val { display:flex; align-items:center; gap:8px; word-break:break-word; }
+  .copy-btn {
+    cursor:pointer; border:none; background:var(--surface-2); color:var(--muted);
+    border-radius:4px; padding:1px 6px; font-size:11px; flex-shrink:0;
+  }
+  .copy-btn:hover { color: var(--text); }
+  .account-box { background: rgba(99,102,241,0.07); border:1px solid rgba(99,102,241,0.2); border-radius:8px; padding:10px 12px; margin-top:12px; }
+  .account-title { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--accent-light); font-weight:600; margin-bottom:6px; }
+
+  /* ─── CITATIONS LIST ─── */
+  .progress-bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow:hidden; margin: 6px 0 14px; }
+  .progress-bar span { display:block; height:100%; background: linear-gradient(90deg, var(--green), #16a34a); transition: width .3s; }
+  .cit-row {
+    display:flex; align-items:center; gap:10px; padding:10px 0;
+    border-bottom:1px solid rgba(42,45,58,0.5);
+  }
+  .cit-row:last-child { border-bottom:none; }
+  .cit-main { flex:1; min-width:0; }
+  .cit-label { font-size:13px; font-weight:600; }
+  .cit-meta { font-size:11px; color:var(--muted); margin-top:2px; display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { background:var(--surface-2); border-radius:4px; padding:1px 6px; font-size:10px; }
+  .chip.video { background: rgba(249,115,22,0.15); color: var(--orange); }
+  .chip.sms { background: rgba(245,158,11,0.15); color: var(--amber); }
+  .badge {
+    font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; white-space:nowrap;
+  }
+  .b-green { background: rgba(34,197,94,0.15); color: var(--green); }
+  .b-blue { background: rgba(59,130,246,0.15); color: var(--blue); }
+  .b-amber { background: rgba(245,158,11,0.15); color: var(--amber); }
+  .b-orange { background: rgba(249,115,22,0.15); color: var(--orange); }
+  .b-red { background: rgba(239,68,68,0.15); color: var(--red); }
+  .b-gray { background: rgba(107,114,128,0.15); color: var(--gray); }
+  .b-neutral { background: var(--surface-2); color: var(--muted); }
+  .cit-actions { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  .open-link {
+    font-size:11px; padding:4px 9px; border-radius:6px; text-decoration:none;
+    background: var(--surface-2); color: var(--accent-light); font-weight:600;
+  }
+  .open-link:hover { background: var(--accent); color:white; }
+  .status-select {
+    font-size:11px; padding:4px 6px; border-radius:6px; border:1px solid var(--border);
+    background: var(--bg); color: var(--text); outline:none; cursor:pointer;
+  }
+
+  /* ─── GOLOGIN / LOGS ─── */
   .golodin-grid { display: flex; flex-wrap: wrap; gap: 8px; }
   .browser-chip {
     display: flex; align-items: center; gap: 6px;
@@ -132,18 +190,22 @@
     background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2);
   }
   .browser-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
-
-  /* ─── LOGS ─── */
-  .log-list { max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 11px; }
+  .log-list { max-height: 180px; overflow-y: auto; font-family: monospace; font-size: 11px; margin-top:8px; }
   .log-entry { padding: 3px 0; border-bottom: 1px solid rgba(42,45,58,0.3); display: flex; gap: 8px; }
   .log-ts { color: var(--muted); white-space: nowrap; }
   .log-msg { color: var(--text); word-break: break-all; }
   .log-entry[data-level="ok"] .log-msg { color: var(--green); }
-  .log-entry[data-level="warn"] .log-msg { color: var(--orange); }
+  .log-entry[data-level="warn"] .log-msg { color: var(--amber); }
   .log-entry[data-level="inject"] .log-msg { color: var(--accent-light); }
   .log-entry[data-level="gone"] .log-msg { color: var(--red); }
-
   .empty { color: var(--muted); font-size: 13px; font-style: italic; }
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--surface-2); border:1px solid var(--border); color: var(--text);
+    padding: 10px 18px; border-radius: 8px; font-size: 13px; opacity:0; transition: all .25s;
+    pointer-events:none; z-index:100;
+  }
+  .toast.show { opacity:1; transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
@@ -151,7 +213,7 @@
 <div class="header">
   <svg class="logo" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect width="40" height="40" rx="10" fill="#6366f1"/>
-    <text x="20" y="27" text-anchor="middle" fill="white" font-size="18" font-weight="700" font-family="-apple-system, sans-serif">AC</text>
+    <text x="20" y="27" text-anchor="middle" fill="white" font-size="17" font-weight="700" font-family="-apple-system, sans-serif">AC</text>
   </svg>
   <div>
     <h1>Allo Chantiers</h1>
@@ -171,11 +233,11 @@
 </div>
 
 <div class="main">
-  <!-- SIDEBAR: GMB list -->
+  <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-title">Business</div>
-      <input class="search-box" id="gmb-search" type="text" placeholder="Rechercher un business...">
+      <div class="sidebar-title"><span>Business</span><span id="gmb-total"></span></div>
+      <input class="search-box" id="gmb-search" type="text" placeholder="Rechercher...">
     </div>
     <div class="gmb-list" id="gmb-list">
       <div class="gmb-loading" id="gmb-loading">Chargement...</div>
@@ -185,56 +247,70 @@
   <!-- CONTENT -->
   <div class="content" id="content">
     <div class="welcome" id="welcome">
-      <div class="welcome-icon">AC</div>
+      <svg class="welcome-icon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="10" fill="#6366f1"/><text x="20" y="27" text-anchor="middle" fill="white" font-size="17" font-weight="700" font-family="sans-serif">AC</text></svg>
       <h2>Selectionne un business</h2>
-      <p>Choisis un business dans la liste a gauche pour commencer a travailler</p>
+      <p>Choisis un business a gauche pour voir ses citations et commencer a travailler.</p>
     </div>
 
     <div id="biz-view" style="display:none">
       <div class="biz-header">
-        <div class="biz-name" id="biz-name"></div>
-        <div class="biz-address" id="biz-address"></div>
+        <div class="biz-header-main">
+          <div class="biz-name" id="biz-name"></div>
+          <div class="biz-sub" id="biz-sub"></div>
+        </div>
+        <div class="biz-progress-ring">
+          <div class="big-pct" id="biz-pct">0%</div>
+          <div class="biz-pct-label" id="biz-pct-label">0 / 0</div>
+        </div>
+      </div>
+
+      <!-- Module: Citations (STAR) -->
+      <div class="module" id="mod-citations">
+        <div class="module-header" onclick="toggleModule('mod-citations')">
+          <span class="module-icon">📋</span>
+          <span class="module-title">Citations a faire</span>
+          <span class="module-badge" id="cit-badge">—</span>
+        </div>
+        <div class="module-body">
+          <div class="progress-bar"><span id="cit-progress" style="width:0%"></span></div>
+          <div id="cit-list"><span class="empty">Chargement...</span></div>
+        </div>
+      </div>
+
+      <!-- Module: Infos NAP + compte -->
+      <div class="module collapsed" id="mod-nap">
+        <div class="module-header" onclick="toggleModule('mod-nap')">
+          <span class="module-icon">🏢</span>
+          <span class="module-title">Infos & compte Google</span>
+        </div>
+        <div class="module-body" id="nap-body"></div>
       </div>
 
       <!-- Module: GoLogin -->
-      <div class="module">
-        <div class="module-header">
+      <div class="module collapsed" id="mod-golodin">
+        <div class="module-header" onclick="toggleModule('mod-golodin')">
           <span class="module-icon">🌐</span>
           <span class="module-title">GoLogin</span>
-          <span class="module-badge" id="browser-count-badge">0 connecte</span>
+          <span class="module-badge" id="browser-count-badge">0</span>
         </div>
         <div class="module-body">
+          <p style="font-size:12px;color:var(--muted);margin:6px 0 10px">
+            Ouvre le site de citation dans GoLogin, puis <kbd style="background:var(--surface-2);padding:2px 6px;border-radius:4px;color:var(--text)">Ctrl+Shift+F</kbd> pour remplir. Marque ensuite "Fait" ici.
+          </p>
           <div class="golodin-grid" id="browsers-grid">
             <span class="empty">En attente de profils GoLogin...</span>
           </div>
         </div>
       </div>
 
-      <!-- Module: Citations -->
-      <div class="module">
-        <div class="module-header">
-          <span class="module-icon">📋</span>
-          <span class="module-title">Citations</span>
-          <span class="module-badge" id="pages-badge">0 page</span>
-        </div>
-        <div class="module-body">
-          <p style="font-size:13px;color:var(--muted);margin-bottom:10px">
-            Ouvre un site de citation dans GoLogin, puis appuie sur <kbd style="background:var(--surface-2);padding:2px 6px;border-radius:4px;font-size:12px;color:var(--text)">Ctrl+Shift+F</kbd> pour remplir automatiquement.
-          </p>
-          <div id="pages-list">
-            <span class="empty">Aucune page injectee</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Module: Logs -->
-      <div class="module">
-        <div class="module-header" onclick="document.getElementById('logs-body').style.display = document.getElementById('logs-body').style.display === 'none' ? 'block' : 'none'">
+      <!-- Module: Activite -->
+      <div class="module collapsed" id="mod-logs">
+        <div class="module-header" onclick="toggleModule('mod-logs')">
           <span class="module-icon">📜</span>
           <span class="module-title">Activite</span>
           <span class="module-badge" id="log-count-badge">0</span>
         </div>
-        <div class="module-body" id="logs-body">
+        <div class="module-body">
           <div class="log-list" id="logs"></div>
         </div>
       </div>
@@ -242,38 +318,95 @@
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
+<!-- SETUP: jeton d'accès -->
+<div id="setup-overlay" style="display:none; position:fixed; inset:0; background:rgba(15,17,23,0.96); z-index:200; align-items:center; justify-content:center;">
+  <div style="max-width:420px; width:90%; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:28px;">
+    <svg style="width:44px;height:44px;margin-bottom:14px" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="10" fill="#6366f1"/><text x="20" y="27" text-anchor="middle" fill="white" font-size="17" font-weight="700" font-family="sans-serif">AC</text></svg>
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:6px">Connexion au dashboard</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Colle le jeton d'accès fourni par l'équipe. Il est stocké en local sur cette machine, une seule fois.</p>
+    <input id="setup-token" type="password" placeholder="Jeton d'accès" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;outline:none;margin-bottom:6px">
+    <div id="setup-error" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:8px"></div>
+    <button id="setup-save" onclick="saveToken()" style="width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent);color:white;font-size:14px;font-weight:600;cursor:pointer">Se connecter</button>
+  </div>
+</div>
+
 <script>
 const $ = (s) => document.getElementById(s);
-// API calls go through the local proxy (server.js proxies /api/ext/* → dashboard)
 
-let allGmbs = [];
-let selectedGmb = null;
+let worklist = [];
+let selected = null;   // { gmbId, name, city }
+let card = null;       // full card from /api/ext/citations/gmb/:id
 let logCount = 0;
 
-// ═══ UTILS ═══
-function esc(s) { const d = document.createElement('span'); d.textContent = s; return d.innerHTML; }
+const STATUTS = [
+  ['a_faire', 'À faire'], ['en_cours', 'En cours'], ['fait', 'Fait'],
+  ['en_attente', 'En attente'], ['bloque_captcha', 'Bloqué (captcha)'],
+  ['bloque_erreur', 'Bloqué (erreur)'], ['video_requise', "Vidéo d'identité"],
+  ['code_sms', 'Code SMS requis'], ['infos_manquantes', 'Infos manquantes'],
+];
 
-function fmtTime(ts) {
-  return new Date(ts).toLocaleTimeString('fr-FR', { hour12: false });
+function esc(s) { const d = document.createElement('span'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+function fmtTime(ts) { return new Date(ts).toLocaleTimeString('fr-FR', { hour12: false }); }
+
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 1800);
 }
 
-// ═══ GMB LIST ═══
-async function loadGmbs() {
-  try {
-    const res = await fetch('/api/ext/citations/nap-search?q=*');
-    if (!res.ok) throw new Error(res.status);
-    allGmbs = await res.json();
-    renderGmbList(allGmbs);
+function toggleModule(id) { $(id).classList.toggle('collapsed'); }
 
-    // Auto-select if we have a saved selection
+function copy(text) { navigator.clipboard.writeText(text).then(() => toast('Copié')); }
+
+// ═══ SETUP (jeton) ═══
+function showSetup(msg) {
+  $('setup-overlay').style.display = 'flex';
+  if (msg) $('setup-error').textContent = msg;
+  $('setup-token').focus();
+}
+function hideSetup() { $('setup-overlay').style.display = 'none'; }
+
+async function saveToken() {
+  const token = $('setup-token').value.trim();
+  const btn = $('setup-save');
+  if (!token) { $('setup-error').textContent = 'Colle le jeton'; return; }
+  btn.disabled = true; btn.textContent = 'Connexion...';
+  try {
+    const res = await fetch('/api/token', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    if (!res.ok) throw new Error('Jeton refusé');
+    // Vérifie que le jeton marche vraiment contre la prod
+    const test = await fetch('/api/ext/citations/worklist');
+    if (test.status === 401) { $('setup-error').textContent = 'Jeton invalide'; btn.disabled = false; btn.textContent = 'Se connecter'; return; }
+    hideSetup();
+    loadWorklist();
+  } catch (e) {
+    $('setup-error').textContent = e.message;
+    btn.disabled = false; btn.textContent = 'Se connecter';
+  }
+}
+$('setup-token') && $('setup-token').addEventListener('keydown', e => { if (e.key === 'Enter') saveToken(); });
+
+// ═══ WORKLIST (sidebar) ═══
+async function loadWorklist() {
+  try {
+    const res = await fetch('/api/ext/citations/worklist');
+    if (res.status === 401) { showSetup(); return; }
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    worklist = data.worklist || [];
+    renderSidebar(worklist);
+    $('gmb-total').textContent = worklist.length;
+
+    // Auto-reselect saved business
     try {
-      const selRes = await fetch('/api/selection');
-      if (selRes.ok) {
-        const sel = await selRes.json();
-        if (sel && sel.gmbId) {
-          const match = allGmbs.find(g => g.gmbId === sel.gmbId);
-          if (match) selectGmb(match, sel.nap);
-        }
+      const sel = await (await fetch('/api/selection')).json();
+      if (sel && sel.gmbId) {
+        const match = worklist.find(w => w.gmbId === sel.gmbId);
+        if (match) openBusiness(match);
       }
     } catch {}
   } catch (err) {
@@ -281,105 +414,188 @@ async function loadGmbs() {
   }
 }
 
-function renderGmbList(list) {
-  const container = $('gmb-list');
-  if (!list.length) {
-    container.innerHTML = '<div class="gmb-loading">Aucun business trouve</div>';
-    return;
-  }
-  container.innerHTML = list.map(g =>
-    '<div class="gmb-item' + (selectedGmb && selectedGmb.gmbId === g.gmbId ? ' active' : '') + '" data-id="' + esc(g.gmbId) + '">' +
-    '  <span class="gmb-icon">📍</span>' +
-    '  <div class="gmb-info">' +
-    '    <div class="gmb-name">' + esc(g.name) + '</div>' +
-    '    <div class="gmb-city">' + esc(g.city || '') + '</div>' +
-    '  </div>' +
-    '</div>'
-  ).join('');
-  container.querySelectorAll('.gmb-item').forEach(el => {
+function renderSidebar(list) {
+  const c = $('gmb-list');
+  if (!list.length) { c.innerHTML = '<div class="gmb-loading">Aucun business</div>'; return; }
+  c.innerHTML = list.map(w => {
+    const pct = w.total ? Math.round((w.done / w.total) * 100) : 0;
+    const isActive = selected && selected.gmbId === w.gmbId;
+    return '<div class="gmb-item' + (isActive ? ' active' : '') + '" data-id="' + esc(w.gmbId) + '">' +
+      '<div class="gmb-info">' +
+        '<div class="gmb-name">' + esc(w.name || w.gmbName) + '</div>' +
+        '<div class="gmb-city">' + esc(w.city || '') + '</div>' +
+      '</div>' +
+      '<div class="gmb-progress">' +
+        '<span class="gmb-count' + (w.done === w.total && w.total ? ' done' : '') + '">' + w.done + '/' + w.total + '</span>' +
+        '<span class="mini-bar"><span style="width:' + pct + '%"></span></span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  c.querySelectorAll('.gmb-item').forEach(el => {
     el.addEventListener('click', () => {
-      const id = el.dataset.id;
-      const gmb = allGmbs.find(g => g.gmbId === id);
-      if (gmb) fetchAndSelect(gmb);
+      const w = worklist.find(x => x.gmbId === el.dataset.id);
+      if (w) openBusiness(w);
     });
   });
 }
 
-async function fetchAndSelect(gmb) {
-  try {
-    const res = await fetch('/api/ext/citations/nap/' + gmb.gmbId);
-    if (!res.ok) throw new Error(res.status);
-    const nap = await res.json();
-    selectGmb(gmb, nap);
-    // Save selection for injected panels
+function filteredWorklist() {
+  const q = $('gmb-search').value.trim().toLowerCase();
+  if (!q) return worklist;
+  return worklist.filter(w =>
+    (w.name || '').toLowerCase().includes(q) || (w.city || '').toLowerCase().includes(q));
+}
+$('gmb-search').addEventListener('input', () => renderSidebar(filteredWorklist()));
+
+// ═══ OPEN BUSINESS ═══
+async function openBusiness(w) {
+  selected = w;
+  $('welcome').style.display = 'none';
+  $('biz-view').style.display = 'block';
+  $('biz-name').textContent = w.name || w.gmbName;
+  $('biz-sub').textContent = w.city || '';
+  $('cit-list').innerHTML = '<span class="empty">Chargement...</span>';
+  renderSidebar(filteredWorklist());
+
+  // Save selection for injected panels — they expect the NAP-row format
+  fetch('/api/ext/citations/nap/' + w.gmbId).then(r => r.json()).then(nap => {
     fetch('/api/selection', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: gmb.name, city: gmb.city || '', gmbId: gmb.gmbId, nap: nap }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: w.name, city: w.city || '', gmbId: w.gmbId, nap }),
     });
+  }).catch(() => {});
+
+  // Load the full card for the worklist display
+  try {
+    const res = await fetch('/api/ext/citations/gmb/' + w.gmbId);
+    if (!res.ok) throw new Error(res.status);
+    card = await res.json();
+    renderCard();
   } catch (err) {
-    console.error('Fetch NAP failed:', err);
+    $('cit-list').innerHTML = '<span class="empty">Erreur : ' + esc(err.message) + '</span>';
   }
 }
 
-function selectGmb(gmb, nap) {
-  selectedGmb = { ...gmb, nap };
-  $('welcome').style.display = 'none';
-  $('biz-view').style.display = 'block';
-  $('biz-name').textContent = gmb.name;
-  $('biz-address').textContent = [nap.street, nap.city, nap.state, nap.zip].filter(Boolean).join(', ');
-  // Re-render list to show active
-  renderGmbList(filteredGmbs());
+function renderCard() {
+  if (!card) return;
+  const done = card.progress.done, total = card.progress.total;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  $('biz-pct').textContent = pct + '%';
+  $('biz-pct-label').textContent = done + ' / ' + total;
+  $('biz-sub').textContent = [card.nap.city, card.nap.niche].filter(Boolean).join(' · ');
+  $('cit-badge').textContent = done + '/' + total;
+  $('cit-progress').style.width = pct + '%';
+
+  // Directory rows
+  $('cit-list').innerHTML = card.items.map(it => {
+    const metaChips = [];
+    if (it.canal) metaChips.push('<span class="chip">' + esc(it.canal) + '</span>');
+    if (it.validation === 'video') metaChips.push('<span class="chip video">vidéo</span>');
+    else if (it.validation === 'sms') metaChips.push('<span class="chip sms">SMS</span>');
+    else if (it.validation) metaChips.push('<span class="chip">' + esc(it.validation) + '</span>');
+
+    const options = STATUTS.map(([v, l]) =>
+      '<option value="' + v + '"' + (v === it.statut ? ' selected' : '') + '>' + l + '</option>').join('');
+
+    const openBtn = it.createUrl
+      ? '<a class="open-link" href="' + esc(it.createUrl) + '" target="_blank" rel="noopener">Ouvrir</a>'
+      : (it.liveUrl ? '<a class="open-link" href="' + esc(it.liveUrl) + '" target="_blank" rel="noopener">Voir</a>' : '');
+
+    return '<div class="cit-row">' +
+      '<div class="cit-main">' +
+        '<div class="cit-label">' + esc(it.label) + '</div>' +
+        '<div class="cit-meta">' + metaChips.join('') + '</div>' +
+      '</div>' +
+      '<div class="cit-actions">' +
+        '<span class="badge b-' + it.couleur + '">' + esc(it.statutLabel) + '</span>' +
+        openBtn +
+        '<select class="status-select" data-dir="' + esc(it.directoryId) + '">' + options + '</select>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  $('cit-list').querySelectorAll('.status-select').forEach(sel => {
+    sel.addEventListener('change', () => markStatus(sel.dataset.dir, sel.value));
+  });
+
+  renderNap();
 }
 
-// ═══ SEARCH ═══
-$('gmb-search').addEventListener('input', () => {
-  renderGmbList(filteredGmbs());
-});
+function renderNap() {
+  if (!card) return;
+  const n = card.nap;
+  const row = (k, v, copyable) => v
+    ? '<div class="kv-key">' + k + '</div><div class="kv-val">' + esc(v) +
+      (copyable ? ' <button class="copy-btn" onclick="copy(' + JSON.stringify(v).replace(/"/g, '&quot;') + ')">copier</button>' : '') + '</div>'
+    : '';
+  let html = '<div class="kv-grid">' +
+    row('Nom', n.name, true) +
+    row('Adresse', n.address, true) +
+    row('Ville', n.city, true) +
+    row('Téléphone', n.phone, true) +
+    row('Email', n.email, true) +
+    row('Site web', n.website, true) +
+    '</div>';
 
-function filteredGmbs() {
-  const q = $('gmb-search').value.trim().toLowerCase();
-  if (!q) return allGmbs;
-  return allGmbs.filter(g =>
-    (g.name || '').toLowerCase().includes(q) ||
-    (g.city || '').toLowerCase().includes(q)
-  );
+  if (card.account) {
+    html += '<div class="account-box">' +
+      '<div class="account-title">Compte Google de la fiche</div>' +
+      '<div class="kv-grid">' +
+        row('Email', card.account.email, true) +
+        row('Mot de passe', card.account.password, true) +
+      '</div></div>';
+  }
+  $('nap-body').innerHTML = html;
+}
+
+async function markStatus(directoryId, statut) {
+  try {
+    const res = await fetch('/api/ext/citations/cell', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gmbId: selected.gmbId, directoryId, statut }),
+    });
+    if (!res.ok) throw new Error(res.status);
+    // Update local card
+    const it = card.items.find(i => i.directoryId === directoryId);
+    if (it) {
+      it.statut = statut;
+      const meta = STATUTS.find(s => s[0] === statut);
+      it.statutLabel = meta ? meta[1] : statut;
+      it.couleur = colorFor(statut);
+    }
+    card.progress.done = card.items.filter(i => i.statut === 'fait').length;
+    // Update sidebar count
+    const w = worklist.find(x => x.gmbId === selected.gmbId);
+    if (w) w.done = card.progress.done;
+    renderCard();
+    renderSidebar(filteredWorklist());
+    toast(statut === 'fait' ? 'Marqué fait ✓' : 'Statut mis à jour');
+  } catch (err) {
+    toast('Erreur : ' + err.message);
+  }
+}
+
+function colorFor(s) {
+  const map = { a_faire:'neutral', en_cours:'blue', fait:'green', en_attente:'amber',
+    bloque_captcha:'red', bloque_erreur:'red', video_requise:'orange', code_sms:'amber', infos_manquantes:'gray' };
+  return map[s] || 'neutral';
 }
 
 // ═══ SSE STATE ═══
 function renderState(data) {
   $('version').textContent = 'v' + (data.version || '?');
-
-  const dot = $('status-dot');
-  const label = $('status-label');
+  const dot = $('status-dot'), label = $('status-label');
   if (data.browsers.length > 0) {
     dot.className = 'status-dot dot-green';
     label.textContent = data.browsers.length + ' navigateur' + (data.browsers.length > 1 ? 's' : '');
   } else {
     dot.className = 'status-dot dot-orange';
-    label.textContent = 'En attente';
+    label.textContent = 'GoLogin fermé';
   }
-
-  // Browsers
-  $('browser-count-badge').textContent = data.browsers.length + ' connecte' + (data.browsers.length > 1 ? 's' : '');
+  $('browser-count-badge').textContent = data.browsers.length;
   $('browsers-grid').innerHTML = data.browsers.length
-    ? data.browsers.map(b =>
-        '<div class="browser-chip"><span class="browser-chip-dot"></span> Port ' + b.port + '</div>'
-      ).join('')
+    ? data.browsers.map(b => '<div class="browser-chip"><span class="browser-chip-dot"></span> Port ' + b.port + '</div>').join('')
     : '<span class="empty">En attente de profils GoLogin...</span>';
-
-  // Pages
-  $('pages-badge').textContent = data.pages.length + ' page' + (data.pages.length > 1 ? 's' : '');
-  $('pages-list').innerHTML = data.pages.length
-    ? data.pages.map(p =>
-        '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px">' +
-        '<span style="color:var(--accent-light);font-weight:500;white-space:nowrap">' + esc(p.plugin) + '</span>' +
-        '<span style="color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace;font-size:11px">' + esc(p.url) + '</span>' +
-        '</div>'
-      ).join('')
-    : '<span class="empty">Aucune page injectee</span>';
-
-  // Update
   renderUpdate(data.update);
 }
 
@@ -387,10 +603,8 @@ function renderLog(entry) {
   logCount++;
   $('log-count-badge').textContent = logCount;
   const el = document.createElement('div');
-  el.className = 'log-entry';
-  el.dataset.level = entry.level;
-  el.innerHTML = '<span class="log-ts">' + fmtTime(entry.ts) + '</span><span class="log-msg">' +
-    entry.msg.replace(/</g, '&lt;') + '</span>';
+  el.className = 'log-entry'; el.dataset.level = entry.level;
+  el.innerHTML = '<span class="log-ts">' + fmtTime(entry.ts) + '</span><span class="log-msg">' + entry.msg.replace(/</g, '&lt;') + '</span>';
   $('logs').appendChild(el);
   $('logs').scrollTop = $('logs').scrollHeight;
 }
@@ -400,18 +614,22 @@ function renderUpdate(update) {
   const banner = $('update-banner');
   if (!update || !update.latest) { banner.classList.remove('visible'); return; }
   banner.classList.add('visible');
-  $('update-text').innerHTML = 'Nouvelle version : <strong>v' + update.latest + '</strong>';
+  let txt = 'Nouvelle version : <strong>v' + update.latest + '</strong>';
+  if (update.status === 'downloading' && update.percent != null) txt += ' — téléchargement ' + update.percent + '%';
+  else if (update.status === 'ready') txt += ' — prête à installer';
+  $('update-text').innerHTML = txt;
+  const btn = $('update-btn');
+  btn.textContent = update.status === 'ready' ? 'Installer & redémarrer' : 'Mettre à jour';
 }
 
 async function doUpdate() {
   const btn = $('update-btn');
-  btn.disabled = true; btn.textContent = 'Telechargement...';
+  btn.disabled = true; btn.textContent = '...';
   try {
-    const res = await fetch('/api/update', { method: 'POST' });
-    const data = await res.json();
-    btn.textContent = data.ok ? 'Redemarrage...' : 'Echec';
+    const data = await (await fetch('/api/update', { method: 'POST' })).json();
+    btn.textContent = data.ok ? 'En cours...' : 'Échec';
     if (!data.ok) btn.disabled = false;
-  } catch { btn.textContent = 'Echec'; btn.disabled = false; }
+  } catch { btn.textContent = 'Échec'; btn.disabled = false; }
 }
 
 // ═══ SSE ═══
@@ -424,7 +642,7 @@ evtSource.onerror = () => {
 };
 
 // ═══ INIT ═══
-loadGmbs();
+loadWorklist();
 </script>
 
 </body>

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, shell } = require('electron');
 const path = require('path');
 
 let mainWindow = null;
@@ -23,6 +23,17 @@ function createWindow() {
   });
 
   mainWindow.loadURL(`http://127.0.0.1:${SERVER_PORT}`);
+
+  // Les liens target="_blank" (Ouvrir un annuaire) s'ouvrent dans le navigateur système
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
+  // Le serveur local démarre en parallèle : si la fenêtre charge trop tôt, on réessaie.
+  mainWindow.webContents.on('did-fail-load', () => {
+    setTimeout(() => { if (mainWindow) mainWindow.loadURL(`http://127.0.0.1:${SERVER_PORT}`); }, 500);
+  });
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
@@ -66,8 +77,14 @@ function createTray() {
 }
 
 app.whenReady().then(() => {
+  // Dossier de stockage local (jeton d'accès, etc.) accessible au backend
+  process.env.AC_USERDATA = app.getPath('userData');
+
   // Start the backend server + scan loop
   require('./main-backend');
+
+  // Auto-update (electron-updater)
+  try { require('./updater').initUpdater(); } catch {}
 
   createWindow();
   createTray();

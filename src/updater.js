@@ -1,140 +1,97 @@
-const https = require('https');
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const { execSync, spawn } = require('child_process');
-const log = require('./log');
-const { bus } = require('./state');
+// Mise à jour via electron-updater.
+// - Windows : auto complet (télécharge en fond, installe + redémarre au clic).
+// - Mac (non signé) : détecte la nouvelle version, affiche le bandeau, le clic ouvre la page
+//   de release pour télécharger le .dmg (Squirrel.Mac exige une signature pour l'install auto).
 
 const VERSION = require('../package.json').version;
-const REPO = 'bushin1/citations-injector';
 
-let updateInfo = null;
+let updateInfo = null;   // { current, latest, status, percent? }
+let downloaded = false;
+let autoUpdater = null;
 
-function getAssetName() {
-  if (process.platform === 'win32') return 'allo-chantiers-win.exe';
-  if (process.platform === 'darwin') return 'allo-chantiers-mac';
-  return 'allo-chantiers-linux';
+function emitUpdate() {
+  try { require('./state').bus.emit('update'); } catch {}
 }
 
-function httpsGet(url) {
-  return new Promise((resolve, reject) => {
-    const get = (u) => {
-      https.get(u, { headers: { 'User-Agent': 'allo-chantiers' } }, (res) => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          return get(res.headers.location);
-        }
-        let data = '';
-        res.on('data', (c) => data += c);
-        res.on('end', () => resolve({ status: res.statusCode, data }));
-      }).on('error', reject);
-    };
-    get(url);
-  });
-}
+function logOk(m) { try { require('./log').ok(m); } catch {} }
+function logWarn(m) { try { require('./log').warn(m); } catch {} }
 
-function downloadFile(url, dest) {
-  return new Promise((resolve, reject) => {
-    const get = (u) => {
-      const mod = u.startsWith('https') ? https : http;
-      mod.get(u, { headers: { 'User-Agent': 'allo-chantiers' } }, (res) => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          return get(res.headers.location);
-        }
-        if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
-        const stream = fs.createWriteStream(dest);
-        res.pipe(stream);
-        stream.on('finish', () => { stream.close(); resolve(); });
-      }).on('error', reject);
-    };
-    get(url);
-  });
-}
+// Appelé par electron-main une fois l'app prête. No-op hors Electron (mode CLI dev).
+function initUpdater() {
+  if (!process.versions || !process.versions.electron) return;
 
-function compareVersions(a, b) {
-  const pa = a.replace(/^v/, '').split('.').map(Number);
-  const pb = b.replace(/^v/, '').split('.').map(Number);
-  for (let i = 0; i < 3; i++) {
-    if ((pa[i] || 0) < (pb[i] || 0)) return -1;
-    if ((pa[i] || 0) > (pb[i] || 0)) return 1;
-  }
-  return 0;
-}
-
-async function checkForUpdate() {
   try {
-    const { data } = await httpsGet(`https://api.github.com/repos/${REPO}/releases/latest`);
-    const release = JSON.parse(data);
-    const latest = release.tag_name;
-
-    if (compareVersions(VERSION, latest) >= 0) {
-      updateInfo = null;
-      return null;
-    }
-
-    const assetName = getAssetName();
-    const asset = release.assets.find(a => a.name === assetName);
-    if (!asset) return null;
-
-    updateInfo = {
-      current: VERSION,
-      latest: latest.replace(/^v/, ''),
-      downloadUrl: asset.browser_download_url,
-      size: asset.size,
-      notes: release.body || '',
-    };
-
-    log.ok(`Mise à jour disponible : v${VERSION} → ${latest}`);
-    bus.emit('update');
-    return updateInfo;
-  } catch (err) {
-    log.warn(`Vérification mise à jour échouée : ${err.message}`);
-    return null;
+    autoUpdater = require('electron-updater').autoUpdater;
+  } catch (e) {
+    logWarn(`electron-updater indisponible : ${e.message}`);
+    return;
   }
+
+  const isMac = process.platform === 'darwin';
+  autoUpdater.autoDownload = !isMac;          // Windows télécharge seul ; Mac non (install non signée impossible)
+  autoUpdater.autoInstallOnAppQuit = !isMac;
+  autoUpdater.logger = null;
+
+  autoUpdater.on('update-available', (info) => {
+    updateInfo = { current: VERSION, latest: info.version, status: isMac ? 'available' : 'downloading' };
+    logOk(`Mise à jour disponible : v${VERSION} → v${info.version}`);
+    emitUpdate();
+  });
+
+  autoUpdater.on('download-progress', (p) => {
+    if (updateInfo) {
+      updateInfo.status = 'downloading';
+      updateInfo.percent = Math.round(p.percent || 0);
+      emitUpdate();
+    }
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    downloaded = true;
+    updateInfo = { current: VERSION, latest: info.version, status: 'ready' };
+    logOk('Mise à jour téléchargée — prête à installer');
+    emitUpdate();
+  });
+
+  autoUpdater.on('update-not-available', () => { updateInfo = null; emitUpdate(); });
+  autoUpdater.on('error', (err) => { logWarn(`MàJ : ${err && err.message ? err.message : err}`); });
+
+  autoUpdater.checkForUpdates().catch((e) => logWarn(`Vérif MàJ : ${e.message}`));
+
+  // Re-vérifie toutes les 6 h tant que l'app tourne
+  setInterval(() => {
+    autoUpdater.checkForUpdates().catch(() => {});
+  }, 6 * 60 * 60 * 1000);
 }
 
 async function applyUpdate() {
-  if (!updateInfo) return false;
+  // Mac non signé : on ouvre la page de release pour télécharger le .dmg à la main.
+  if (process.platform === 'darwin') {
+    try {
+      require('electron').shell.openExternal('https://github.com/bushin1/citations-injector/releases/latest');
+      return true;
+    } catch { return false; }
+  }
+
+  if (!autoUpdater) return false;
+
+  if (downloaded) {
+    setImmediate(() => autoUpdater.quitAndInstall());
+    return true;
+  }
 
   try {
-    log.info('Téléchargement de la mise à jour…');
-    bus.emit('update');
-
-    const currentBinary = process.pkg ? process.execPath : null;
-    if (!currentBinary) {
-      log.warn('Mise à jour auto disponible uniquement en mode packagé');
-      return false;
-    }
-
-    const tmpFile = currentBinary + '.new';
-    await downloadFile(updateInfo.downloadUrl, tmpFile);
-
-    if (process.platform === 'win32') {
-      const oldFile = currentBinary + '.old';
-      try { fs.unlinkSync(oldFile); } catch {}
-      fs.renameSync(currentBinary, oldFile);
-      fs.renameSync(tmpFile, currentBinary);
-    } else {
-      fs.renameSync(tmpFile, currentBinary);
-      fs.chmodSync(currentBinary, 0o755);
-    }
-
-    log.ok('Mise à jour installée — redémarrage…');
-
-    spawn(currentBinary, process.argv.slice(1), {
-      detached: true,
-      stdio: 'ignore',
-    }).unref();
-
-    process.exit(0);
-  } catch (err) {
-    log.warn(`Échec mise à jour : ${err.message}`);
+    await autoUpdater.downloadUpdate();
+    return true;
+  } catch (e) {
+    logWarn(`Téléchargement MàJ échoué : ${e.message}`);
     return false;
   }
 }
 
-function getUpdateInfo() {
-  return updateInfo;
-}
+function getUpdateInfo() { return updateInfo; }
 
-module.exports = { checkForUpdate, applyUpdate, getUpdateInfo };
+// Conservé pour le mode CLI (main.js) : la vraie vérif passe par initUpdater sous Electron.
+function checkForUpdate() {}
+
+module.exports = { initUpdater, checkForUpdate, applyUpdate, getUpdateInfo };

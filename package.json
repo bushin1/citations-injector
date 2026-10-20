@@ -1,6 +1,6 @@
 {
   "name": "allo-chantiers",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Companion local pour l'equipe Allo Chantiers — citations, GoLogin, et plus",
   "main": "src/electron-main.js",
   "bin": "src/main.js",
@@ -17,16 +17,23 @@
     "directories": {
       "output": "dist"
     },
+    "publish": [
+      { "provider": "github", "owner": "bushin1", "repo": "citations-injector" }
+    ],
     "files": [
       "src/**/*",
       "package.json",
       "node_modules/**/*"
     ],
+    "extraResources": [
+      { "from": "token.local", "to": "token.local" }
+    ],
     "mac": {
       "category": "public.app-category.business",
       "icon": "assets/icon.icns",
       "target": [
-        { "target": "dmg", "arch": ["arm64"] }
+        { "target": "dmg", "arch": ["arm64"] },
+        { "target": "zip", "arch": ["arm64"] }
       ]
     },
     "win": {

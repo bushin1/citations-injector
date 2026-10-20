@@ -10,7 +10,9 @@ function load() {
 
   return {
     dashboardBase: process.env.DASHBOARD_BASE || 'https://dashboard.allo-chantiers.com',
-    extToken:      process.env.EXT_TOKEN || '1a1d267d9077770b4e04a6651cf970c3154fb4ad69460b1d',
+    // Jamais de vrai jeton dans le code (repo). Il vient de l'env, d'un fichier local
+    // (token.local intégré au build), ou de l'écran de connexion. Voir server.js loadToken().
+    extToken:      process.env.EXT_TOKEN || '',
     pollInterval:  parseInt(process.env.POLL_INTERVAL || '3000', 10),
     goLoginApiPort: parseInt(process.env.GOLOGIN_API_PORT || '36912', 10),
     debugPorts:    process.env.DEBUG_PORTS
@@ -20,10 +22,8 @@ function load() {
 }
 
 function validate(config) {
-  if (!config.extToken) {
-    console.error('[!] EXT_TOKEN requis. Crée un fichier .env à côté de l\'exécutable.');
-    process.exit(1);
-  }
+  // Le jeton n'est plus requis ici : il est résolu par server.js (token.local intégré,
+  // fichier local saisi par la VA, ou env). Si absent, l'app affiche l'écran de connexion.
   return config;
 }
 

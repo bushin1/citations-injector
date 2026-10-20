@@ -12,6 +12,37 @@ const PORT = parseInt(process.env.UI_PORT || '3847', 10);
 
 const cfg = load();
 
+// ── Jeton d'accès ─────────────────────────────────────────────────────────────
+// Le vrai jeton n'est PAS dans le code (repo public). La VA le colle une fois dans
+// l'écran de réglage ; on le stocke en local (dossier userData de l'app).
+const TOKEN_FILE = path.join(
+  process.env.AC_USERDATA || path.dirname(process.execPath || __dirname),
+  'ac-token.txt',
+);
+// token.local intégré au build (jamais commité) : le jeton par défaut livré avec l'app.
+function bundledToken() {
+  const candidates = [
+    process.resourcesPath ? path.join(process.resourcesPath, 'token.local') : null,
+    path.join(__dirname, '..', 'token.local'),
+  ].filter(Boolean);
+  for (const p of candidates) {
+    try { const t = fs.readFileSync(p, 'utf-8').trim(); if (t) return t; } catch {}
+  }
+  return '';
+}
+function loadToken() {
+  // 1. jeton saisi en local par la VA (priorité) ; 2. env ; 3. token.local du build ; 4. config
+  try {
+    const t = fs.readFileSync(TOKEN_FILE, 'utf-8').trim();
+    if (t) return t;
+  } catch {}
+  return process.env.EXT_TOKEN || bundledToken() || cfg.extToken || '';
+}
+function saveToken(t) {
+  try { fs.writeFileSync(TOKEN_FILE, String(t).trim(), 'utf-8'); return true; } catch { return false; }
+}
+let currentToken = loadToken();
+
 let selectedBusiness = null;
 
 const sseClients = new Set();
@@ -31,23 +62,43 @@ function broadcastLog(entry) {
   }
 }
 
-function proxyDashboard(reqPath, res) {
-  const url = cfg.dashboardBase + reqPath;
-  const mod = url.startsWith('https') ? https : http;
-  const proxyReq = mod.get(url, { headers: { 'x-ext-token': cfg.extToken } }, (proxyRes) => {
-    let body = '';
-    proxyRes.on('data', c => body += c);
-    proxyRes.on('end', () => {
-      res.writeHead(proxyRes.statusCode, {
-        'Content-Type': proxyRes.headers['content-type'] || 'application/json',
-        'Access-Control-Allow-Origin': '*',
+function proxyDashboard(req, res) {
+  const target = new URL(cfg.dashboardBase + req.url);
+  const mod = target.protocol === 'https:' ? https : http;
+
+  // Lit le corps éventuel (PUT/POST) pour le retransmettre
+  let reqBody = '';
+  req.on('data', c => reqBody += c);
+  req.on('end', () => {
+    const options = {
+      method: req.method,
+      hostname: target.hostname,
+      port: target.port || (target.protocol === 'https:' ? 443 : 80),
+      path: target.pathname + target.search,
+      headers: {
+        'x-ext-token': currentToken,
+        'Content-Type': 'application/json',
+      },
+    };
+    if (reqBody) options.headers['Content-Length'] = Buffer.byteLength(reqBody);
+
+    const proxyReq = mod.request(options, (proxyRes) => {
+      let body = '';
+      proxyRes.on('data', c => body += c);
+      proxyRes.on('end', () => {
+        res.writeHead(proxyRes.statusCode, {
+          'Content-Type': proxyRes.headers['content-type'] || 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.end(body);
       });
-      res.end(body);
     });
-  });
-  proxyReq.on('error', (err) => {
-    res.writeHead(502, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: err.message }));
+    proxyReq.on('error', (err) => {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+    if (reqBody) proxyReq.write(reqBody);
+    proxyReq.end();
   });
 }
 
@@ -68,6 +119,36 @@ function start() {
 
       const data = { ...snapshot(), version: VERSION, update: getUpdateInfo() };
       res.write(`event: state\ndata: ${JSON.stringify(data)}\n\n`);
+      return;
+    }
+
+    if (req.url === '/api/config' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify({ hasToken: !!currentToken, dashboardBase: cfg.dashboardBase }));
+      return;
+    }
+
+    if (req.url === '/api/token' && req.method === 'POST') {
+      let body = '';
+      req.on('data', c => body += c);
+      req.on('end', () => {
+        try {
+          const { token } = JSON.parse(body);
+          const t = String(token || '').trim();
+          if (!t || t.length < 8) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'token trop court' }));
+            return;
+          }
+          currentToken = t;
+          saveToken(t);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true }));
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'invalid json' }));
+        }
+      });
       return;
     }
 
@@ -111,9 +192,9 @@ function start() {
       return;
     }
 
-    // Proxy dashboard API calls
+    // Proxy dashboard API calls (GET + PUT/POST avec corps)
     if (req.url.startsWith('/api/ext/')) {
-      return proxyDashboard(req.url, res);
+      return proxyDashboard(req, res);
     }
 
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });

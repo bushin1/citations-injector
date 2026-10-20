@@ -4,3 +4,7 @@ dist/
 *.log
 index.js
 inject-panel.js
+
+# Jeton d'accès — jamais commité (intégré au build localement)
+token.local
+ac-token.txt
